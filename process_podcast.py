@@ -689,23 +689,25 @@ def main():
     log.debug("main(): video duration = {v}".format(v=video_duration))
     
     if (audio_duration != video_duration):
-        log.warning("total video_duration ({v}s) doesn't match "
+        log.warning("total video duration ({v}s) doesn't match "
                     "total audio duration "
                     "({a}s)".format(v=video_duration, a=audio_duration))
     
     # Set up frame segments that refer to the previous segment.
     for f in [s for s in segments if isinstance(s, FrameSegment)]:
         log.debug(f)
-        if (f.input_file == "^" and f.segment_number > 0):
-            prev = segments[f.segment_number - 1]
-            log.debug(prev)
-            prev.generate_temp_file(args.output)
-            f.use_frame(prev.generate_last_frame(args.output))
-            log.debug(f)
-        else:
-            log.error("frame segment {s} is attempting to use the last frame "
-                      "of a non-existent previous "
-                      "segment".format(s=f.segment_number))
+        if (f.input_file == "^"):
+            if (f.segment_number > 0):
+                prev = segments[f.segment_number - 1]
+                log.debug(prev)
+                prev.generate_temp_file(args.output)
+                f.use_frame(prev.generate_last_frame(args.output))
+                log.debug(f)
+            else:
+                log.error("frame segment {s} is attempting to use the last frame "
+                          "of a non-existent previous "
+                          "segment".format(s=f.segment_number))
+                sys.exit(1)
     
     print Segment.input_files()
     
