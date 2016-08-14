@@ -346,7 +346,8 @@ class FrameSegment(VideoSegment):
              "jpg"])
         command = ConvertCommand(
             options=["{f}[{n}]".format(f=self.input_file,
-                                       n=self.input_stream)])
+                                       n=self.input_stream),
+                     self._temp_file])
         logging.getLogger(PROGRAM).debug(command)
         command.run()
     
@@ -589,12 +590,16 @@ def process_time_list(type, filename, num, time_list):
         for t in zip(time_list[::2], time_list[1::2]):
             punch_in, punch_out = process_timestamp_pair(t)
             if (punch_in == punch_out):
-                log.warning("punch in (%ds) and punch out (%ds) times are "
-                            "equal; no segment will be generated")
+                log.warning("punch in ({i}s) and punch out ({o}s) times are "
+                            "equal; no segment will be "
+                            "generated".format(i=punch_in.total_seconds(),
+                                               o=punch_out.total_seconds()))
                 continue
             elif (punch_out < punch_in):
-                log.error("punch out time (%ds) falls before punch in time "
-                          "(%ds); can't generate a valid segment")
+                log.error("punch out time ({i}s) falls before punch in time "
+                          "({o}s); can't generate a valid "
+                          "segment".format(i=punch_in.total_seconds(),
+                                           o=punch_out.total_seconds()))
                 sys.exit(1)
             segments.append(make_new_segment(type, filename, punch_in,
                                              punch_out, num))
