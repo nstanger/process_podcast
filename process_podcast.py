@@ -118,12 +118,18 @@ class FFmpegConcatCommand(FFmpegCommand):
     
     def append_concat_filter(self, type, segments=[]):
         """Append a concat filter to the filters list"""
-        self.append_filter(
-            "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
-                inspecs=" ".join([s.output_stream_specifier()
-                                  for s in segments]),
-                n=len(segments), v=int(type == "v"),
-                a=int(type == "a"), t=type))
+        if (len(segments) > 1):
+            self.append_filter(
+                "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
+                    inspecs=" ".join([s.output_stream_specifier()
+                                      for s in segments]),
+                    n=len(segments), v=int(type == "v"),
+                    a=int(type == "a"), t=type))
+        else:
+            self.append_filter(
+                "{inspec} {a}null [{t}conc]".format(
+                    inspec=segments[0].output_stream_specifier(),
+                    a=type if type == "a" else "", t=type))
         
     def build_complex_filter(self):
         """Build the complete complex filter.
@@ -630,10 +636,10 @@ def process_input_streams(config):
 
 
 
-def concatenate_segments(segments, output):
-    """Concatenate the temporary segment files into the final podcast."""
+def render_podcast(segments, output):
+    """Stitch together the various input components into the final podcast."""
     log = logging.getLogger(PROGRAM)
-    log.info("Concatenating final podcast...")
+    log.info("Rendering final podcast...")
     command = FFmpegConcatCommand()
     input_files = Segment.input_files()
     for f in input_files:
@@ -690,7 +696,7 @@ def main():
     # Set up frame segments that refer to the previous segment.
     for f in [s for s in segments if isinstance(s, FrameSegment)]:
         log.debug(f)
-        if (f.segment_number > 0):
+        if (f.input_file == "^" and f.segment_number > 0):
             prev = segments[f.segment_number - 1]
             log.debug(prev)
             prev.generate_temp_file(args.output)
@@ -704,7 +710,7 @@ def main():
     print Segment.input_files()
     
     try:
-        concatenate_segments(segments, args.output)
+        render_podcast(segments, args.output)
         if (not args.keep):
             cleanup(segments)
     except (KeyboardInterrupt):
