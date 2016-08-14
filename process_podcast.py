@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import distutils.spawn
+import errno
 import itertools
 import logging
 import os
@@ -228,8 +229,15 @@ class Segment(object):
     
     def delete_temp_files(self):
         """Delete the temporary file(s) associated with the segment."""
+        # Note: sometimes segments (especially frame segments) may
+        # share the same temporary file. Just ignore the file not
+        # found exception that occurs in these cases.
         if (self._temp_file):
-            os.remove(self._temp_file)
+            try:
+                os.remove(self._temp_file)
+            except OSError as e:
+                if (e.errno != errno.ENOENT):
+                    raise e
     
     def input_stream_specifier(self):
         """Return the segment's ffmpeg stream input specifier."""
