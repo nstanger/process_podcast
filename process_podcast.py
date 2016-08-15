@@ -717,7 +717,7 @@ def main():
                           "segment".format(s=f.segment_number))
                 sys.exit(1)
     
-    print Segment.input_files()
+    log.debug(Segment.input_files())
     
     try:
         render_podcast(segments, args.output)
