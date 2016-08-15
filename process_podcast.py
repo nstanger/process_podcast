@@ -105,6 +105,7 @@ class FFmpegConcatCommand(FFmpegCommand):
         self.prepend_output_options(["-codec:a", "pcm_s16le",
                                      "-ac", "1",
                                      "-codec:v", "h264",
+                                     "-pix_fmt", "yuv420p",
                                      "-map", "[vconc]",
                                      "-map", "[anorm]"])
         self.filters = []
@@ -389,8 +390,15 @@ class FrameSegment(VideoSegment):
     
     def delete_temp_files(self):
         """Delete the temporary file(s) associated with the scene."""
+        # Note: sometimes segments (especially frame segments) may
+        # share the same temporary file. Just ignore the file not
+        # found exception that occurs in these cases.
         if (self.input_file):
-            os.remove(self.input_file)
+            try:
+                os.remove(self.input_file)
+            except OSError as e:
+                if (e.errno != errno.ENOENT):
+                    raise e
         super(FrameSegment, self).delete_temp_files()
 
 
@@ -525,15 +533,6 @@ def get_file_duration(file):
     ss, ms = command.get_output().strip().split(".")
     ms = ms[:3].ljust(3, "0")
     return datetime.timedelta(seconds=int(ss), milliseconds=int(ms))
-
-
-def read_segments_from_file(segments_file):
-    """Read a list of segment punch-in, punch-out point from a file."""
-    segments = []
-    with open(segments_file) as f:
-        for line in f:
-            segments.append(dict(zip(["in", "out"], line.split())))
-    return segments
 
 
 def make_new_segment(type, filename, punch_in, punch_out, num):
