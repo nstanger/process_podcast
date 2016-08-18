@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-
 from pyparsing import *
 
 # pyparsing documentation:

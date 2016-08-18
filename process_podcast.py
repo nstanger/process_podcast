@@ -2,272 +2,17 @@
 
 import argparse
 import datetime
-import errno
-import itertools
 import logging
-import os
 import os.path
 import sys
-import textwrap
-from collections import OrderedDict
-from decimal import *
 
 from pyparsing import ParseResults
 
-from parse_podcast_config import (
+import globals
+from config_parser import (
     parse_configuration_file, parse_configuration_string)
-from shell_command import (
-    ConvertCommand, FFprobeCommand, FFmpegCommand, FFmpegConcatCommand)
-
-
-PROGRAM = "process_lectorial_capture"
-
-
-class Segment(object):
-    """A segment within the podcast.
-    
-    A segment has an input file, and a punch-in and punch-out
-    point (both in seconds).
-    """
-    _new_segment_num = itertools.count().next
-    _input_files = OrderedDict()
-    _TYPE = ""
-    _TRIM = ""
-    _SETPTS = ""
-    
-    @staticmethod
-    def input_files():
-        return Segment._input_files
-    
-    @staticmethod
-    def _rename_input_file(old, new):
-        tmp = OrderedDict()
-        for f in Segment._input_files:
-            if (f == old):
-                tmp[new] = Segment._input_files[f]
-            else:
-                tmp[f] = Segment._input_files[f]
-        Segment._input_files = tmp
-    
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
-        self.segment_number = self.__class__._new_segment_num()
-        self.input_file = file
-        self.punch_in = punch_in
-        self.punch_out = punch_out
-        self.input_stream = input_stream
-        self._temp_file = ""
-        self._temp_suffix = "mov"
-        
-        if (file not in self.__class__._input_files):
-            self.__class__._input_files[file] = None
-        
-        self._input_options = ["-ss", str(self.punch_in.total_seconds()),
-                               "-t", str(self.get_duration()),
-                               "-i", self.input_file]
-        self._output_options = []
-            
-    def __repr__(self):
-        return('<{c} {n}: file "{f}", in {i}, out '
-               '{o}>'.format(c=self.__class__.__name__,
-                             n=self.segment_number,
-                             t=self._TYPE,
-                             f=self.input_file,
-                             i=self.punch_in,
-                             o=self.punch_out))
-    
-    def get_duration(self):
-        """Return the duration of the segment in seconds."""
-        return (self.punch_out - self.punch_in).total_seconds()
-    
-    def generate_temp_file(self, output):
-        """Compile the segment from the original source file(s)."""
-        self._temp_file = os.path.extsep.join(
-            ["temp_{t}_{o}_{n:03d}".format(t=self._TYPE,
-                                           o=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             self._temp_suffix])
-        command = FFmpegCommand(
-            input_options=self._input_options + ["-codec", "copy"],
-            output_options=self._output_options + [self._temp_file])
-        logging.getLogger(PROGRAM).debug(command)
-        command.run()
-    
-    def temp_file(self):
-        """Return the temporary file associated with the segment."""
-        return self._temp_file
-    
-    def delete_temp_files(self):
-        """Delete the temporary file(s) associated with the segment."""
-        # Note: sometimes segments (especially frame segments) may
-        # share the same temporary file. Just ignore the file not
-        # found exception that occurs in these cases.
-        if (self._temp_file):
-            try:
-                os.remove(self._temp_file)
-            except OSError as e:
-                if (e.errno != errno.ENOENT):
-                    raise e
-    
-    def input_stream_specifier(self):
-        """Return the segment's ffmpeg stream input specifier."""
-        return "[{n}:{t}]".format(
-            n=self.__class__._input_files.keys().index(self.input_file),
-            t=self._TYPE[0] if self._TYPE else "")
-        
-    def output_stream_specifier(self):
-        """Return the segment's ffmpeg audio stream output specifier."""
-        return "[{t}{n}]".format(t=self._TYPE[0] if self._TYPE else "",
-                                 n=self.segment_number)
-    
-    def trim_filter(self):
-        """Return an FFMPEG trim filter for this segment."""
-        return ("{inspec} "
-                "{trim}=start={pi}:duration={po},{setpts}=PTS-STARTPTS "
-                "{outspec}".format(
-                    inspec=self.input_stream_specifier(),
-                    trim=self._TRIM, setpts=self._SETPTS,
-                    pi=self.punch_in.total_seconds(),
-                    po=self.get_duration(),
-                    outspec=self.output_stream_specifier()))
-
-
-class AudioSegment(Segment):
-    """A segment of an audio input stream."""
-    _TYPE = "audio"
-    _TRIM = "atrim"
-    _SETPTS = "asetpts"
-
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
-        super(AudioSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
-        self._temp_suffix = "wav"
-        self._output_options = ["-ac", "1",
-                                "-map", "{n}:a".format(n=self.input_stream)]
-    
-
-class VideoSegment(Segment):
-    """A segment of a video input stream."""
-    _TYPE = "video"
-    _TRIM = "trim"
-    _SETPTS = "setpts"
-
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
-        super(VideoSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
-        self._output_options = ["-map", "{n}:v".format(n=self.input_stream)]
-        self._temp_frame_file = ""
-    
-    def get_last_frame_number(self):
-        """Calculate frame number of segment's last frame using ffprobe."""
-        log = logging.getLogger(PROGRAM)
-        if (self._temp_file):
-            self._temp_frame_file = "__{f}".format(f=self._temp_file)
-        
-            # To speed things up, grab up to the last 5 seconds of the
-            # segment's temporary file, as we otherwise have to scan the
-            # entire temporary file to find the last frame, which can
-            # take a while.
-            command = FFmpegCommand(
-                input_options=["-ss", str(max(self.get_duration() - 5, 0)),
-                               "-i", self._temp_file],
-                output_options=["-codec:v", "copy",
-                                "-map", "0:v",
-                                self._temp_frame_file])
-            log.debug(command)
-            command.run()
-            command = FFprobeCommand(
-                options=["-select_streams", "v",
-                         "-show_entries", "stream=nb_frames",
-                         "-print_format", "default=noprint_wrappers=1:nokey=1",
-                         self._temp_frame_file])
-            log.debug(command)
-            return int(command.get_output().strip()) - 1
-        else:
-            return -1
-    
-    def generate_last_frame(self, output):
-        """Create a JPEG file from the last frame of the segment."""
-        temp_frame = os.path.extsep.join(
-            ["temp_{t}_{f}_{n:03d}".format(t=self._TYPE,
-                                           f=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             "jpg"])
-        num = self.get_last_frame_number()
-        command = FFmpegCommand(
-            input_options=["-i", self._temp_frame_file],
-            output_options=["-filter:v", "select='eq(n, {n})'".format(n=num),
-                            "-frames:v", "1",
-                            "-f", "image2",
-                            "-map", "0:v",
-                            temp_frame])
-        logging.getLogger(PROGRAM).debug(command)
-        if (command.run() == 0):
-            os.remove(self._temp_frame_file)
-            return temp_frame
-        else:
-            return None
-    
-
-class FrameSegment(VideoSegment):
-    """A video segment derived from a single still frame."""
-    _TYPE = "frame"
-    
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
-        super(FrameSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
-        self._input_options = ["-loop", "1",
-                               "-t", str(self.get_duration()),
-                               "-i", self.input_file]
-        self.__class__._input_files[file] = self._input_options[:4]
-    
-    def generate_temp_file(self, output):
-        """Compile the segment from the original source file(s)."""
-        self._temp_file = os.path.extsep.join(
-            ["temp_{t}_{o}_{n:03d}".format(t=self._TYPE,
-                                           o=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             "jpg"])
-        command = ConvertCommand(
-            options=["{f}[{n}]".format(f=self.input_file,
-                                       n=self.input_stream),
-                     self._temp_file])
-        logging.getLogger(PROGRAM).debug(command)
-        command.run()
-    
-    def use_frame(self, frame):
-        """Set the image to use for generating the frame video."""
-        self.__class__._rename_input_file(self.input_file, frame)
-        self.input_file = frame
-        self._input_options = ["-loop", "1",
-                               "-t", str(self.get_duration()),
-                               "-i", self.input_file]
-        self.__class__._input_files[frame] = self._input_options[:4]
-        
-    def input_stream_specifier(self):
-        """Return the segment's ffmpeg stream input specifier."""
-        return "[{n}:v]".format(
-            n=self.__class__._input_files.keys().index(self.input_file))
-        
-    def output_stream_specifier(self):
-        """Return the segment's ffmpeg audio stream output specifier."""
-        return self.input_stream_specifier()
-    
-    def trim_filter(self):
-        """Return an FFMPEG trim filter for this segment."""
-        return ""
-    
-    def delete_temp_files(self):
-        """Delete the temporary file(s) associated with the scene."""
-        # Note: sometimes segments (especially frame segments) may
-        # share the same temporary file. Just ignore the file not
-        # found exception that occurs in these cases.
-        if (self.input_file):
-            try:
-                os.remove(self.input_file)
-            except OSError as e:
-                if (e.errno != errno.ENOENT):
-                    raise e
-        super(FrameSegment, self).delete_temp_files()
+from shell_command import (FFprobeCommand, FFmpegConcatCommand)
+from segment import (Segment, AudioSegment, VideoSegment, FrameSegment)
 
 
 def parse_command_line():
@@ -300,7 +45,7 @@ def parse_command_line():
         "--configuration", "--config", "-c", dest="config", metavar="FILE",
         help="File name for the podcast segment configuration (plain text). "
             "Run {p} --help-config for details on the file "
-            "format.".format(p=PROGRAM))
+            "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
         "--debug", "-d", action="store_true",
@@ -345,32 +90,31 @@ def print_config_help():
 
 def check_arguments(args):
     """Sanity check the command line arguments."""
-    log = logging.getLogger(PROGRAM)
-    
+    fn = "check_arguments"
 #     if (args.help_config):
 #         print_config_help()
     
     if (args.quiet):
-        log.setLevel(logging.WARNING)
+        globals.log.setLevel(logging.WARNING)
         
     # --debug overrides --quiet.
     if (args.debug):
-        log.setLevel(logging.DEBUG)
-        log.debug("check_arguments(): args = %s", args)
+        globals.log.setLevel(logging.DEBUG)
+        globals.log.debug("{fn}(): args = {a}".format(fn=fn, a=args))
     
     # Must specify at least one of --audio, --video, --frame, --config.
     if (not any([args.audio, args.video, args.frame, args.config])):
-        log.error("must specify at least one of --audio, --video, "
-                  "--frame, or --config")
+        globals.log.error("must specify at least one of --audio, --video, "
+                          "--frame, or --config")
         sys.exit(1)
     
 
 def get_configuration(args):
-    log = logging.getLogger(PROGRAM)
-    
     # Fill in missing file names for default input streams.
+    fn = "get_configuration"
     file_mapping = {"audio": args.audio, "video": args.video,
                     "frame": args.frame}
+    globals.log.info("Processing configuration...")
     if (args.config):
         config = parse_configuration_file(args.config)
         # Check that applicable default input streams have been specified.
@@ -379,14 +123,15 @@ def get_configuration(args):
                 if (file_mapping[c["type"]]):
                     config[i]["filename"] = file_mapping[c["type"]]
                 else:
-                    log.error(
+                    globals.log.error(
                         "attempting to use default {s} input stream, but "
                         "--{s} hasn't been specified".format(s=c["type"]))
                     sys.exit(1)    
     else:
         conf_list = ["[{type}:{file}:0]".format(type=m, file=file_mapping[m])
                      for m in file_mapping if file_mapping[m]]
-        log.debug("get_configuration(): default config = %s", conf_list)
+        globals.log.debug("{fn}(): default config = "
+                          "{c}".format(fn=fn, c=conf_list))
         config = parse_configuration_string("\n".join(conf_list))
     
     return config
@@ -405,12 +150,12 @@ def get_file_duration(file):
 
 def make_new_segment(type, filename, punch_in, punch_out, num):
     """Make a new segment instance of the correct class."""
-    log = logging.getLogger(PROGRAM)
-    log.debug("make_new_segment(): type = %s", type)
-    log.debug("make_new_segment(): filename = %s", filename)
-    log.debug("make_new_segment(): punch in = %s", punch_in)
-    log.debug("make_new_segment(): punch out = %s", punch_out)
-    log.debug("make_new_segment(): num = %s", num)
+    fn = "make_new_segment"
+    globals.log.debug("{fn}(): type = {t}".format(fn=fn, t=type))
+    globals.log.debug("{fn}(): filename = {f}".format(fn=fn, f=filename))
+    globals.log.debug("{fn}(): punch in = {i}s".format(fn=fn, i=punch_in))
+    globals.log.debug("{fn}(): punch out = {o}s".format(fn=fn, o=punch_out))
+    globals.log.debug("{fn}(): num = {n}".format(fn=fn, n=num))
     
     if (type == "audio"):
         return AudioSegment(file=filename, punch_in=punch_in,
@@ -427,9 +172,9 @@ def make_new_segment(type, filename, punch_in, punch_out, num):
 
 def process_timestamp_pair(times):
     """Constructs timedelta instances from a pair of config timestamps."""
-    log = logging.getLogger(PROGRAM)
-    log.debug("process_timestamp_pair(): t0 = {t0}".format(t0=times[0]))
-    log.debug("process_timestamp_pair(): t1 = {t1}".format(t1=times[1]))
+    fn = "process_timestamp_pair"
+    globals.log.debug("{fn}(): t0 = {t}".format(fn=fn, t=times[0]))
+    globals.log.debug("{fn}(): t1 = {t}".format(fn=fn, t=times[1]))
     
     # If the first item in the timestamp list in the configuration file
     # is a filename, the parser inserts a zero timestamp before it. We
@@ -445,14 +190,13 @@ def process_timestamp_pair(times):
             hours=times[1]["hh"], minutes=times[1]["mm"],
             seconds=times[1]["ss"], milliseconds=times[1]["ms"])
     else:
-        log.error("unreadable timestamp {t}".format(t=times[1]))
+        globals.log.error("unreadable timestamp {t}".format(t=times[1]))
     
     return t0, t1
 
 
 def process_time_list(type, filename, num, time_list):
     """Process an audio or video stream and build a list of segments."""
-    log = logging.getLogger(PROGRAM)
     if (os.path.exists(filename)):
         stream_duration = get_file_duration(filename)
     else:
@@ -471,16 +215,18 @@ def process_time_list(type, filename, num, time_list):
         for t in zip(time_list[::2], time_list[1::2]):
             punch_in, punch_out = process_timestamp_pair(t)
             if (punch_in == punch_out):
-                log.warning("punch in ({i}s) and punch out ({o}s) times are "
-                            "equal; no segment will be "
-                            "generated".format(i=punch_in.total_seconds(),
-                                               o=punch_out.total_seconds()))
+                globals.log.warning(
+                    "punch in ({i}s) and punch out ({o}s) times are "
+                    "equal; no segment will be "
+                    "generated".format(i=punch_in.total_seconds(),
+                                       o=punch_out.total_seconds()))
                 continue
             elif (punch_out < punch_in):
-                log.error("punch out time ({i}s) falls before punch in time "
-                          "({o}s); can't generate a valid "
-                          "segment".format(i=punch_in.total_seconds(),
-                                           o=punch_out.total_seconds()))
+                globals.log.error(
+                    "punch out time ({i}s) falls before punch in time "
+                    "({o}s); can't generate a valid "
+                    "segment".format(i=punch_in.total_seconds(),
+                                     o=punch_out.total_seconds()))
                 sys.exit(1)
             segments.append(make_new_segment(type, filename, punch_in,
                                              punch_out, num))
@@ -497,13 +243,15 @@ def process_time_list(type, filename, num, time_list):
 
 def process_input_streams(config):
     """Process a list of stream specification and build a list of segments."""
-    log = logging.getLogger(PROGRAM)
+    fn = "process_input_streams"
+    globals.log.info("Processing input streams...")
     segments = []
     for cnf in config:
-        log.debug("process_input_streams(): type = %s", cnf["type"])
-        log.debug("process_input_streams(): filename = %s", cnf["filename"])
-        log.debug("process_input_streams(): num = %s", cnf["num"])
-        log.debug("process_input_streams(): times = %s", cnf["times"])
+        globals.log.debug("{fn}(): type = {t}".format(fn=fn, t=cnf["type"]))
+        globals.log.debug(
+            "{fn}(): filename = {f}".format(fn=fn, f=cnf["filename"]))
+        globals.log.debug("{fn}(): num = {n}".format(fn=fn, n=cnf["num"]))
+        globals.log.debug("{fn}(): times = t".format(fn=fn, t=cnf["times"]))
     
         segments += process_time_list(cnf["type"], cnf["filename"],
                                       cnf["num"], cnf["times"])  
@@ -513,8 +261,8 @@ def process_input_streams(config):
 
 def render_podcast(segments, output):
     """Stitch together the various input components into the final podcast."""
-    log = logging.getLogger(PROGRAM)
-    log.info("Rendering final podcast...")
+    fn = "render_podcast"
+    globals.log.info("Rendering final podcast...")
     command = FFmpegConcatCommand()
     input_files = Segment.input_files()
     for f in input_files:
@@ -530,22 +278,22 @@ def render_podcast(segments, output):
     command.append_concat_filter(
         "v", [s for s in segments if isinstance(s, VideoSegment)])
     command.append_output_options([output])
-    log.debug(command)
+    globals.log.debug("{fn}(): {c}".format(fn=fn, c=command))
     command.run()
 
 
 def cleanup(segments):
     """Clean up generated temporary files."""
-    logging.getLogger(PROGRAM).info("Cleaning up...")
+    globals.log.info("Cleaning up...")
     for s in segments:
         s.delete_temp_files()
 
 
 def main():
+    fn = "main"
     logging.basicConfig(
         level=logging.INFO,
-        format="%(levelname)s: {p}: %(message)s".format(p=PROGRAM))
-    log = logging.getLogger(PROGRAM)
+        format="%(levelname)s: {p}: %(message)s".format(p=globals.PROGRAM))
     
     args = parse_command_line()
     check_arguments(args)
@@ -553,38 +301,44 @@ def main():
     config = get_configuration(args)
     
     segments = process_input_streams(config)
-    log.debug([s for s in segments if isinstance(s, AudioSegment)])
-    log.debug([s for s in segments if isinstance(s, VideoSegment)])
+    globals.log.debug("{fn}(): audio segments = {a}".format(
+        fn=fn, a=[s for s in segments if isinstance(s, AudioSegment)]))
+    globals.log.debug("{fn}(): audio segments = {v}".format(
+        fn=fn, v=[s for s in segments if isinstance(s, VideoSegment)]))
     
     audio_duration = sum([s.get_duration() for s in segments
                           if isinstance(s, AudioSegment)])
     video_duration = sum([s.get_duration() for s in segments
                           if isinstance(s, VideoSegment)])
-    log.debug("main(): audio duration = {a}".format(a=audio_duration))
-    log.debug("main(): video duration = {v}".format(v=video_duration))
+    globals.log.debug("{fn}(): audio duration = "
+                      "{a}".format(fn=fn, a=audio_duration))
+    globals.log.debug("{fn}(): video duration = "
+                      "{v}".format(fn=fn, v=video_duration))
     
     if (audio_duration != video_duration):
-        log.warning("total video duration ({v}s) doesn't match "
+        globals.log.warning("total video duration ({v}s) doesn't match "
                     "total audio duration "
                     "({a}s)".format(v=video_duration, a=audio_duration))
     
     # Set up frame segments that refer to the previous segment.
     for f in [s for s in segments if isinstance(s, FrameSegment)]:
-        log.debug(f)
+        globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
         if (f.input_file == "^"):
             if (f.segment_number > 0):
                 prev = segments[f.segment_number - 1]
-                log.debug(prev)
+                globals.log.debug("{fn}(): prev = {p}".format(fn=fn, p=prev))
                 prev.generate_temp_file(args.output)
                 f.use_frame(prev.generate_last_frame(args.output))
-                log.debug(f)
+                globals.log.debug("{fn}(): frame (after) = "
+                                  "{a}".format(fn=fn, a=f))
             else:
-                log.error("frame segment {s} is attempting to use the last frame "
+                globals.log.error("frame segment {s} is attempting to use the last frame "
                           "of a non-existent previous "
                           "segment".format(s=f.segment_number))
                 sys.exit(1)
     
-    log.debug(Segment.input_files())
+    globals.log.debug("{fn}(): input files = "
+                      "{i}".format(fn=fn, i=Segment.input_files()))
     
     try:
         render_podcast(segments, args.output)
