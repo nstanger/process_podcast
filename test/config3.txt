@@ -1,0 +1,21 @@
+[a:20160729_105610.wav]
+00:07:59.000 00:25:50.000
+[a:joiner.wav]
+[a:20160729_105610.wav]
+00:53:00.000 00:53:27.000
+
+[f:Lectorial-slides.pdf:0] 00:07:59.000 00:08:46.000
+[f:Lectorial-slides.pdf:1] 00:08:46.000 00:10:28.000
+[f:Lectorial-slides.pdf:2] 00:10:28.000 00:12:19.000
+[f:Lectorial-slides.pdf:3] 00:12:19.000 00:13:53.000
+[f:Lectorial-slides.pdf:4] 00:13:53.000 00:14:26.000
+[f:Lectorial-slides.pdf:5] 00:14:26.000 00:16:22.000
+[f:Lectorial-slides.pdf:6] 00:16:22.000 00:20:16.000
+[f:Lectorial-slides.pdf:7] 00:20:16.000 00:20:50.000
+[f:Lectorial-slides.pdf:8] 00:20:50.000 00:22:32.000
+[f:Lectorial-slides.pdf:9] 00:22:32.000 00:22:49.000
+[f:Lectorial-slides.pdf:10] 00:22:49.000 00:25:59.000
+[f:Lectorial-slides.pdf:11] 00:25:59.000 00:26:25.000
+[f:Lectorial-slides.pdf:12] 00:26:25.000 00:25:50.000
+[f:Lectorial-slides.pdf:13] @joiner.wav
+[f:Lectorial-slides.pdf:14] 00:53:00.000 00:53:27.000

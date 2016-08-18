@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+
 from pyparsing import *
 
 # pyparsing documentation:
@@ -147,11 +148,11 @@ def parse_configuration_string(config_string):
 
 
 def test_parser():
-    tests = ["config1.txt", "config2.txt", "config3.txt", "config4.txt"]
+    tests = ["test/config1.txt", "test/config2.txt", "test/config3.txt", "test/config4.txt"]
 
     for t in tests:
         print "==={f}===".format(f=t)
-        r = parse_configuration_file("/".join(["/Users/nstanger/tmp", t]))
+        r = parse_configuration_file(t)
         for s in r:
             print s
             print "    type = {t}".format(t=s["type"])
