@@ -21,9 +21,11 @@ def parse_command_line():
         usage="%(prog)s [options] <output>",
         description="where: <output> is the name of the output file "
             "(note: .mov is generally best)",
-        epilog="Default input streams can be specified using any of "
-            "--audio, --video, or --frame. If none of these are specified, "
-            "then you must supply a configuration file using --config.\n\n"
+        epilog="Default input streams can be specified using either of "
+            "--audio or --video. If neither of these are specified, "
+            "then you must supply a configuration file using --config. "
+            "(Of course, you can always supply a configuration file "
+            "regardless.)\n\n"
             "Input streams can be taken from the same input file.\n\n"
             "If no segments are specified, the entire input stream is "
             "processed as one segment. The number and duration of segments "
@@ -50,17 +52,6 @@ def parse_command_line():
     parser.add_argument(
         "--debug", "-d", action="store_true",
         help="Print debugging output (overrides --quiet).")
-    
-    # Does this make sense as an option? It's a special case of video,
-    # and probably makes more sense in the context of a config file
-    # anyway. Howe does one specify last frame of previous segment
-    # from the command line?
-    parser.add_argument(
-        "--frame", "-f", metavar="FILE",
-        help="File name for the default frame input stream (can be the "
-            "same as other input streams). Only the first video stream "
-            "(where applicable) in the file is read unless you specify "
-            "otherwise in a configuration file.")
     
     parser.add_argument(
         "--keep", "-k", action="store_true",
@@ -102,18 +93,17 @@ def check_arguments(args):
         globals.log.setLevel(logging.DEBUG)
         globals.log.debug("{fn}(): args = {a}".format(fn=fn, a=args))
     
-    # Must specify at least one of --audio, --video, --frame, --config.
-    if (not any([args.audio, args.video, args.frame, args.config])):
+    # Must specify at least one of --audio, --video, --config.
+    if (not any([args.audio, args.video, args.config])):
         globals.log.error("must specify at least one of --audio, --video, "
-                          "--frame, or --config")
+                          "or --config")
         sys.exit(1)
     
 
 def get_configuration(args):
     # Fill in missing file names for default input streams.
     fn = "get_configuration"
-    file_mapping = {"audio": args.audio, "video": args.video,
-                    "frame": args.frame}
+    file_mapping = {"audio": args.audio, "video": args.video}
     globals.log.info("Processing configuration...")
     if (args.config):
         config = parse_configuration_file(args.config)
