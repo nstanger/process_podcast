@@ -3,6 +3,6 @@
 import logging
 
 
-PROGRAM = "process_lectorial_capture"
+PROGRAM = "process_podcast"
 
 log = logging.getLogger(PROGRAM)
