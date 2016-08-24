@@ -15,6 +15,18 @@ from shell_command import (FFprobeCommand, FFmpegConcatCommand)
 from segment import (Segment, AudioSegment, VideoSegment, FrameSegment)
 
 
+class InputStreamAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        input = values.split(":")
+        file = input[0]
+        stream = None if (len(input) == 1) else input[1]
+        setattr(namespace, self.dest, file)
+        if (option_string in ["--audio", "-a"]):
+            setattr(namespace, 'audio_stream_number', stream)
+        elif (option_string in ["--video", "-v"]):
+            setattr(namespace, 'video_stream_number', stream)
+
+
 def parse_command_line():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -37,7 +49,7 @@ def parse_command_line():
         help="name of the output file (note: .mov is best)")
     
     parser.add_argument(
-        "--audio", "-a", metavar="FILE",
+        "--audio", "-a", metavar="FILE", action=InputStreamAction,
         help="File name for the default audio input stream (can be the "
             "same as other input streams). Only the first audio stream "
             "in the file is read unless you specify otherwise in a "
@@ -62,7 +74,7 @@ def parse_command_line():
         help="Mute all console output (overridden by --debug).")
 
     parser.add_argument(
-        "--video", "-v", metavar="FILE",
+        "--video", "-v", metavar="FILE", action=InputStreamAction,
         help="File name for the default video input stream (can be the "
             "same as other input streams). Only the first video stream "
             "in the file is read unless you specify otherwise in a "
@@ -103,23 +115,42 @@ def check_arguments(args):
 def get_configuration(args):
     # Fill in missing file names for default input streams.
     fn = "get_configuration"
-    file_mapping = {"audio": args.audio, "video": args.video}
+    type_mapping = {
+        "audio": {"file": args.audio, "stream": args.audio_stream_number},
+        "video": {"file": args.video, "stream": args.video_stream_number}}
     globals.log.info("Processing configuration...")
     if (args.config):
         config = parse_configuration_file(args.config)
         # Check that applicable default input streams have been specified.
         for i, c in enumerate(config):
-            if (not c["filename"]):
-                if (file_mapping[c["type"]]):
-                    config[i]["filename"] = file_mapping[c["type"]]
-                else:
-                    globals.log.error(
-                        "attempting to use default {s} input stream, but "
-                        "--{s} hasn't been specified".format(s=c["type"]))
-                    sys.exit(1)    
+            type = c["type"]
+            if (type in type_mapping):
+                file = type_mapping[type]["file"]
+                stream = type_mapping[type]["stream"]
+                # No filename in configuration.
+                if (not c["filename"]):
+                    if (file):
+                        config[i]["filename"] = file
+                    # No filename on command line either.
+                    else:
+                        globals.log.error(
+                            "attempting to use default {s} input stream, but "
+                            "--{s} hasn't been specified".format(s=type))
+                        sys.exit(1)
+                # No stream number in configuration. Note: 0 is a valid
+                # stream number, so explicitly check for None.
+                if (c["num"] is None):
+                    # Assume 0 if no stream on command line either.
+                    config[i]["num"] = 0 if stream is None else stream
     else:
-        conf_list = ["[{type}:{file}:0]".format(type=m, file=file_mapping[m])
-                     for m in file_mapping if file_mapping[m]]
+        conf_list = []
+        for m in type_mapping:
+            file = type_mapping[m]["file"]
+            stream = type_mapping[m]["stream"]
+            if (file and stream is not None):
+                conf_list += [
+                    "[{type}:{file}:{stream}]".format(type=m, file=file,
+                                                      stream=stream)]
         globals.log.debug("{fn}(): default config = "
                           "{c}".format(fn=fn, c=conf_list))
         config = parse_configuration_string("\n".join(conf_list))
