@@ -49,11 +49,13 @@ def parse_command_line():
         help="name of the output file (note: .mov is best)")
     
     parser.add_argument(
-        "--audio", "-a", metavar="FILE", action=InputStreamAction,
+        "--audio", "-a", metavar="FILE[:STREAM]", action=InputStreamAction,
         help="File name for the default audio input stream (can be the "
-            "same as other input streams). Only the first audio stream "
-            "in the file is read unless you specify otherwise in a "
-            "configuration file.")
+            "same as other input streams). You can optionally specify "
+            "the default audio stream number to use if the file contains "
+            "more than one (this can be overidden in a configuration "
+            "file). If you don't specify a stream number, it defaults "
+            "to 0 (i.e., the first audio stream in the file).")
     
     parser.add_argument(
         "--configuration", "--config", "-c", dest="config", metavar="FILE",
@@ -74,11 +76,13 @@ def parse_command_line():
         help="Mute all console output (overridden by --debug).")
 
     parser.add_argument(
-        "--video", "-v", metavar="FILE", action=InputStreamAction,
+        "--video", "-v", metavar="FILE[:STREAM]", action=InputStreamAction,
         help="File name for the default video input stream (can be the "
-            "same as other input streams). Only the first video stream "
-            "in the file is read unless you specify otherwise in a "
-            "configuration file.")
+            "same as other input streams). You can optionally specify "
+            "the default video stream number to use if the file contains "
+            "more than one (this can be overidden in a configuration "
+            "file). If you don't specify a stream number, it defaults "
+            "to 0 (i.e., the first video stream in the file).")
     
     args = parser.parse_args()
     
