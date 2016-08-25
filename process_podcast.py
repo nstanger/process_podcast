@@ -68,6 +68,10 @@ def parse_command_line():
         help="Print debugging output (overrides --quiet).")
     
     parser.add_argument(
+        "--config-help",
+        help="Print information on how to write a configuration file.")
+    
+    parser.add_argument(
         "--keep", "-k", action="store_true",
         help="Don't delete any generated temporary files.")
     
@@ -91,6 +95,7 @@ def parse_command_line():
 
 def print_config_help():
     """Print details of the configuration file format."""
+    fn = "print_config_help"
     print "Help is coming."
     sys.exit(0)
 
@@ -98,8 +103,8 @@ def print_config_help():
 def check_arguments(args):
     """Sanity check the command line arguments."""
     fn = "check_arguments"
-#     if (args.help_config):
-#         print_config_help()
+    if (args.help_config):
+        print_config_help()
     
     if (args.quiet):
         globals.log.setLevel(logging.WARNING)
