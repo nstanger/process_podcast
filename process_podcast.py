@@ -21,6 +21,8 @@ class InputStreamAction(argparse.Action):
         file = input[0]
         stream = None if (len(input) == 1) else input[1]
         setattr(namespace, self.dest, file)
+        setattr(namespace, 'audio_stream_number', None)
+        setattr(namespace, 'video_stream_number', None)
         if (option_string in ["--audio", "-a"]):
             setattr(namespace, 'audio_stream_number', stream)
         elif (option_string in ["--video", "-v"]):
@@ -103,7 +105,7 @@ def print_config_help():
 def check_arguments(args):
     """Sanity check the command line arguments."""
     fn = "check_arguments"
-    if (args.help_config):
+    if (args.config_help):
         print_config_help()
     
     if (args.quiet):
@@ -183,8 +185,8 @@ def make_new_segment(type, filename, punch_in, punch_out, num):
     fn = "make_new_segment"
     globals.log.debug("{fn}(): type = {t}".format(fn=fn, t=type))
     globals.log.debug("{fn}(): filename = {f}".format(fn=fn, f=filename))
-    globals.log.debug("{fn}(): punch in = {i}s".format(fn=fn, i=punch_in))
-    globals.log.debug("{fn}(): punch out = {o}s".format(fn=fn, o=punch_out))
+    globals.log.debug("{fn}(): punch in = {i}".format(fn=fn, i=punch_in))
+    globals.log.debug("{fn}(): punch out = {o}".format(fn=fn, o=punch_out))
     globals.log.debug("{fn}(): num = {n}".format(fn=fn, n=num))
     
     if (type == "audio"):
@@ -195,7 +197,7 @@ def make_new_segment(type, filename, punch_in, punch_out, num):
                             punch_out=punch_out, input_stream=num)
     elif (type == "frame"):
         return FrameSegment(file=filename, punch_in=punch_in,
-                            punch_out=punch_out, input_stream=num)
+                            punch_out=punch_out, frame_number=num)
     else:
         return None
 
@@ -227,7 +229,7 @@ def process_timestamp_pair(times):
 
 def process_time_list(type, filename, num, time_list):
     """Process an audio or video stream and build a list of segments."""
-    if (os.path.exists(filename)):
+    if (os.path.exists(filename) and type in ["audio", "video"]):
         stream_duration = get_file_duration(filename)
     else:
         stream_duration = 0
@@ -272,7 +274,7 @@ def process_time_list(type, filename, num, time_list):
 
 
 def process_input_streams(config):
-    """Process a list of stream specification and build a list of segments."""
+    """Process a list of stream specifications and build a list of segments."""
     fn = "process_input_streams"
     globals.log.info("Processing input streams...")
     segments = []
@@ -281,7 +283,7 @@ def process_input_streams(config):
         globals.log.debug(
             "{fn}(): filename = {f}".format(fn=fn, f=cnf["filename"]))
         globals.log.debug("{fn}(): num = {n}".format(fn=fn, n=cnf["num"]))
-        globals.log.debug("{fn}(): times = t".format(fn=fn, t=cnf["times"]))
+        globals.log.debug("{fn}(): times = {t}".format(fn=fn, t=cnf["times"]))
     
         segments += process_time_list(cnf["type"], cnf["filename"],
                                       cnf["num"], cnf["times"])  
@@ -333,7 +335,7 @@ def main():
     segments = process_input_streams(config)
     globals.log.debug("{fn}(): audio segments = {a}".format(
         fn=fn, a=[s for s in segments if isinstance(s, AudioSegment)]))
-    globals.log.debug("{fn}(): audio segments = {v}".format(
+    globals.log.debug("{fn}(): video segments = {v}".format(
         fn=fn, v=[s for s in segments if isinstance(s, VideoSegment)]))
     
     audio_duration = sum([s.get_duration() for s in segments
@@ -350,22 +352,33 @@ def main():
                     "total audio duration "
                     "({a}s)".format(v=video_duration, a=audio_duration))
     
-    # Set up frame segments that refer to the previous segment.
+    # Set up frame segments.
     for f in [s for s in segments if isinstance(s, FrameSegment)]:
         globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
+        # Frame segments that use a frame from the previous segment.
         if (f.input_file == "^"):
             if (f.segment_number > 0):
                 prev = segments[f.segment_number - 1]
                 globals.log.debug("{fn}(): prev = {p}".format(fn=fn, p=prev))
                 prev.generate_temp_file(args.output)
-                f.use_frame(prev.generate_last_frame(args.output))
-                globals.log.debug("{fn}(): frame (after) = "
-                                  "{a}".format(fn=fn, a=f))
+                f.use_frame(prev.generate_frame(f.frame_number, args.output))
             else:
-                globals.log.error("frame segment {s} is attempting to use the last frame "
-                          "of a non-existent previous "
-                          "segment".format(s=f.segment_number))
+                globals.log.error(
+                    "frame segment {s} is attempting to use the last frame "
+                    "of a non-existent previous "
+                    "segment".format(s=f.segment_number))
                 sys.exit(1)
+        # Frame segments whose frame comes from a PDF file.
+        else:
+            _, suffix = os.path.splitext(f.input_file)
+            if (suffix.lower() == ".pdf"):
+                f.use_frame(f.generate_temp_file(args.output))
+            else:
+                globals.log.error(
+                    'unexpected input file type "{s}" for frame segment '
+                    "{f}".format(s=suffix, f=f.segment_number))
+                sys.exit(1)
+        globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
     
     globals.log.debug("{fn}(): input files = "
                       "{i}".format(fn=fn, i=Segment.input_files()))

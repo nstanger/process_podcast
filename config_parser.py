@@ -37,7 +37,7 @@ def parser_bnf():
 
     # filename ::= [A-Za-z0-9][-A-Za-z0-9._ ]+
     filename_first = Word(alphanums, exact=1)
-    filename_rest = Word(alphanums + "-_. ")
+    filename_rest = Word(alphanums + "-_/. ")
     filename = Combine(filename_first + Optional(filename_rest))
 
     # millisecs ::= "." [0-9]+
