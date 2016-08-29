@@ -40,7 +40,8 @@ class ShellCommand(object):
 class ConvertCommand(ShellCommand):
     """An ImageMagick convert command."""
     _executable = distutils.spawn.find_executable("convert")
-    _base_options = ["-scale", "2048x1536", "-density", "600"]
+    _base_options = ["-scale", "2048x1536", "-density", "600",
+                     "-background", "white", "-flatten"]
     
 
 class FFprobeCommand(ShellCommand):
