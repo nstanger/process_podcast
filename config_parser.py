@@ -14,7 +14,7 @@ def assign_missing_fields(fields):
     """Fill in missing optional field values (filename, num)."""
     not_found = STREAM_FIELDS - set(fields.keys())
     for k in not_found:
-        v = 0 if (k in ["num"]) else ""
+        v = None
         # see http://pyparsing.wikispaces.com/share/view/71042464
         fields[k] = v
         fields.append(v)
