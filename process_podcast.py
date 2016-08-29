@@ -21,8 +21,6 @@ class InputStreamAction(argparse.Action):
         file = input[0]
         stream = None if (len(input) == 1) else input[1]
         setattr(namespace, self.dest, file)
-        setattr(namespace, 'audio_stream_number', None)
-        setattr(namespace, 'video_stream_number', None)
         if (option_string in ["--audio", "-a"]):
             setattr(namespace, 'audio_stream_number', stream)
         elif (option_string in ["--video", "-v"]):
@@ -46,6 +44,8 @@ def parse_command_line():
             "can differ, but all input streams must have the same the total "
             "length.")
     
+    parser.set_defaults(audio_stream_number=None, video_stream_number=None)
+
     parser.add_argument(
         "output",
         help="name of the output file (note: .mov is best)")
