@@ -111,7 +111,7 @@ class FFmpegConcatCommand(FFmpegCommand):
                                       for s in segments]),
                     n=len(segments), v=int(type == "v"),
                     a=int(type == "a"), t=type))
-        else:
+        elif (len(segments) == 1):
             self.append_filter(
                 "{inspec} {a}null [{t}conc]".format(
                     inspec=segments[0].output_stream_specifier(),
