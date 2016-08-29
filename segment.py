@@ -252,9 +252,9 @@ class FrameSegment(VideoSegment):
                                            n=self.segment_number),
              "jpg"])
         command = ConvertCommand(
-            options=["{f}[{n}]".format(f=self.input_file,
-                                       n=self.frame_number),
-                     self._temp_file])
+            input_options=["{f}[{n}]".format(f=self.input_file,
+                                             n=self.frame_number)],
+            output_options=["{f}".format(f=self._temp_file)])
         globals.log.debug("{cls}.{fn}(): {cmd}".format(
             cls=self.__class__.__name__, fn=fn, cmd=command))
         if (command.run() == 0):

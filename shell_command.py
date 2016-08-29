@@ -16,49 +16,15 @@ class ShellCommand(object):
     _executable = ""
     _base_options = []
     
-    def __init__(self, options=[]):
-        self.options = options
+    def __init__(self, input_options=[], output_options=[]):
+        self.input_options = input_options
+        self.output_options = output_options
     
     def __repr__(self):
         return "<{cls}: {cmd}>".format(
             cls=self.__class__.__name__,
             cmd=" ".join(self.command_items(True)))
-    
-    def command_items(self, debug=False):
-        """Return the list of items representing the command."""
-        return ([self._executable] + self._base_options + self.options)
-    
-    def run(self):
-        """Execute the command in a subprocess."""
-        return subprocess.call(self.command_items())
-    
-    def get_output(self):
-        """Execute the command in a subprocess and return the output."""
-        return subprocess.check_output(self.command_items())
 
-
-class ConvertCommand(ShellCommand):
-    """An ImageMagick convert command."""
-    _executable = distutils.spawn.find_executable("convert")
-    _base_options = ["-scale", "2048x1536", "-density", "600",
-                     "-background", "white", "-flatten"]
-    
-
-class FFprobeCommand(ShellCommand):
-    """An ffprobe shell command."""
-    _executable = distutils.spawn.find_executable("ffprobe")
-    _base_options = ["-loglevel", "error"]
-
-    
-class FFmpegCommand(ShellCommand):
-    """A "simple" ffmpeg shell command."""
-    _executable = distutils.spawn.find_executable("ffmpeg")
-    _base_options = ["-y", "-loglevel", "error", "-nostdin"]
-
-    def __init__(self, input_options=[], output_options=[]):
-        self.input_options = input_options
-        self.output_options = output_options
-    
     def append_input_options(self, items=[]):
         """Add a list of items to the end of the input options."""
         self.input_options += items
@@ -79,6 +45,65 @@ class FFmpegCommand(ShellCommand):
         """Return the list of items representing the command."""
         return ([self._executable] + self._base_options +
                 self.input_options + self.output_options)
+    
+    def run(self):
+        """Execute the command in a subprocess."""
+        return subprocess.call(self.command_items())
+    
+    def get_output(self):
+        """Execute the command in a subprocess and return the output."""
+        return subprocess.check_output(self.command_items())
+
+
+class ConvertCommand(ShellCommand):
+    """An ImageMagick convert command."""
+    _executable = distutils.spawn.find_executable("convert")
+    _base_options = ["-density", "600",
+                     "-define", "colorspace:auto-grayscale=off", # force RGB
+                     "-type", "truecolor",
+                     "-size", "2048x1536",
+                     "xc:dimgrey", "null:", # dark grey background
+                     "("]
+    
+    def __init__(self, input_options=[], output_options=[]):
+        super(ConvertCommand, self).__init__(input_options, output_options)
+        self.append_input_options(["-resize", "2048x1536",
+                                   "-background", "white", 
+                                   "-alpha", "remove"])
+        self.prepend_output_options([")",
+                                     "-gravity", "center",
+                                     "-layers", "composite",
+                                     "-flatten"])
+    
+    def command_items(self, debug=False):
+        """Return the list of items representing the command."""
+        base_opts = self._base_options
+        input_opts = self.input_options
+        output_opts = self.output_options
+        if (debug):
+            # Wrap frame specifiers in 'single quotes' and prefix
+            # parentheses with backslashes, so that we can copy and
+            # paste the command string directly into the shell for
+            # testing.
+            base_opts = [re.sub(r"\(", r"\\(", s)
+                         for s in self._base_options]
+            input_opts = [re.sub(r"\[(\d+)\]", r"'[\1]'", s)
+                          for s in self.input_options]
+            output_opts = [re.sub(r"\)", r"\\)", s)
+                           for s in self.output_options]
+        return ([self._executable] + base_opts + input_opts + output_opts)
+    
+
+class FFprobeCommand(ShellCommand):
+    """An ffprobe shell command."""
+    _executable = distutils.spawn.find_executable("ffprobe")
+    _base_options = ["-loglevel", "error"]
+
+    
+class FFmpegCommand(ShellCommand):
+    """A "simple" ffmpeg shell command."""
+    _executable = distutils.spawn.find_executable("ffmpeg")
+    _base_options = ["-y", "-loglevel", "error", "-nostdin"]
         
 
 class FFmpegConcatCommand(FFmpegCommand):
@@ -141,8 +166,8 @@ class FFmpegConcatCommand(FFmpegCommand):
 
 if (__name__ == "__main__"):
     print ShellCommand()
-    print ConvertCommand(options=["in.pdf"])
-    print FFprobeCommand(options=["-i", "in.mov"])
+    print ConvertCommand(input_options=["in.pdf[12]"], output_options=["out.png"])
+    print FFprobeCommand(input_options=["-i", "in.mov"])
     print FFmpegCommand(input_options=["-i", "in.mov"],
                         output_options=["out.mov"])
     concat = FFmpegConcatCommand(input_options=["-i", "in.mov"],
