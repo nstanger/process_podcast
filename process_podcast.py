@@ -347,7 +347,7 @@ def main():
     globals.log.debug("{fn}(): video duration = "
                       "{v}".format(fn=fn, v=video_duration))
     
-    if (audio_duration != video_duration):
+    if (args.audio and audio_duration != video_duration):
         globals.log.warning("total video duration ({v}s) doesn't match "
                     "total audio duration "
                     "({a}s)".format(v=video_duration, a=audio_duration))
