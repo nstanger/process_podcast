@@ -59,17 +59,18 @@ class ConvertCommand(ShellCommand):
     """An ImageMagick convert command."""
     _executable = distutils.spawn.find_executable("convert")
     _base_options = ["-density", "600",
-                     "-define", "colorspace:auto-grayscale=off", # force RGB
-                     "-type", "truecolor",
                      "-size", "2048x1536",
                      "xc:dimgrey", "null:", # dark grey background
                      "("]
     
     def __init__(self, input_options=[], output_options=[]):
         super(ConvertCommand, self).__init__(input_options, output_options)
-        self.append_input_options(["-resize", "2048x1536",
-                                   "-background", "white", 
-                                   "-alpha", "remove"])
+        self.append_input_options(
+            ["-resize", "2048x1536",
+             "-background", "white", 
+             "-alpha", "remove",
+             "-type", "truecolor", # force RGB (this and next line)
+             "-define", "colorspace:auto-grayscale=off"])
         self.prepend_output_options([")",
                                      "-gravity", "center",
                                      "-layers", "composite",
