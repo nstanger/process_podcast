@@ -32,8 +32,8 @@ def parse_command_line():
     parser = argparse.ArgumentParser(
         usage="%(prog)s [options] <output>",
         description="where: <output> is the name of the output file "
-            "(note: .mov is generally best)",
-        epilog="Default input streams can be specified using either of "
+            "(note: .mov seems generally best)",
+        epilog="Default input files can be specified using either of "
             "--audio or --video. If neither of these are specified, "
             "then you must supply a configuration file using --config. "
             "(Of course, you can always supply a configuration file "
@@ -41,8 +41,8 @@ def parse_command_line():
             "Input streams can be taken from the same input file.\n\n"
             "If no segments are specified, the entire input stream is "
             "processed as one segment. The number and duration of segments "
-            "can differ, but all input streams must have the same the total "
-            "length.")
+            "can differ, but the total duration across all input streams "
+            "should ideally be the same.")
     
     parser.set_defaults(audio_stream_number=None, video_stream_number=None)
 
@@ -53,7 +53,7 @@ def parse_command_line():
     parser.add_argument(
         "--audio", "-a", metavar="FILE[:STREAM]", action=InputStreamAction,
         help="File name for the default audio input stream (can be the "
-            "same as other input streams). You can optionally specify "
+            "same as for other input streams). You can optionally specify "
             "the default audio stream number to use if the file contains "
             "more than one (this can be overidden in a configuration "
             "file). If you don't specify a stream number, it defaults "
@@ -84,7 +84,7 @@ def parse_command_line():
     parser.add_argument(
         "--video", "-v", metavar="FILE[:STREAM]", action=InputStreamAction,
         help="File name for the default video input stream (can be the "
-            "same as other input streams). You can optionally specify "
+            "same as for other input streams). You can optionally specify "
             "the default video stream number to use if the file contains "
             "more than one (this can be overidden in a configuration "
             "file). If you don't specify a stream number, it defaults "
@@ -145,7 +145,7 @@ def get_configuration(args):
                     # No filename on command line either.
                     else:
                         globals.log.error(
-                            "attempting to use default {s} input stream, but "
+                            "attempting to use default {s} input file, but "
                             "--{s} hasn't been specified".format(s=type))
                         sys.exit(1)
                 # No stream number in configuration. Note: 0 is a valid

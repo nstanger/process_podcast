@@ -122,12 +122,12 @@ def parser_bnf():
                         .setParseAction(assign_missing_fields) +
                  right_bracket)
 
-    # streamspec ::= inputspec [timespecs]
-    streamspec = Group(inputspec + 
-                       Group(Optional(timespecs)).setResultsName("times"))
+    # segmentspec ::= inputspec [timespecs]
+    segmentspec = Group(inputspec + 
+                        Group(Optional(timespecs)).setResultsName("times"))
 
-    # config ::= {streamspec}
-    config = ZeroOrMore(streamspec)
+    # config ::= {segmentspec}
+    config = ZeroOrMore(segmentspec)
     config.ignore(pythonStyleComment)
     
     return config
