@@ -182,10 +182,11 @@ class VideoSegment(Segment):
                 cls=self.__class__.__name__, fn=fn, cmd=command))
             command.run()
             command = FFprobeCommand(
-                options=["-select_streams", "v",
-                         "-show_entries", "stream=nb_frames",
-                         "-print_format", "default=noprint_wrappers=1:nokey=1",
-                         self._temp_frame_file])
+                input_options=[
+                    "-select_streams", "v",
+                    "-show_entries", "stream=nb_frames",
+                    "-print_format", "default=noprint_wrappers=1:nokey=1",
+                    self._temp_frame_file])
             globals.log.debug("{cls}.{fn}(): {cmd}".format(
                 cls=self.__class__.__name__, fn=fn, cmd=command))
             return int(command.get_output().strip()) - 1

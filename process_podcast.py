@@ -290,6 +290,36 @@ def process_input_streams(config):
     return segments
 
 
+def process_frame_segments(args, segments):
+    """Post-process frame segments to set frame images, etc."""
+    fn = "process_frame_segments"
+    for f in [s for s in segments if isinstance(s, FrameSegment)]:
+        globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
+        # Frame segments that use a frame from the previous segment.
+        if (f.input_file == "^"):
+            if (f.segment_number > 0):
+                prev = segments[f.segment_number - 1]
+                globals.log.debug("{fn}(): prev = {p}".format(fn=fn, p=prev))
+                prev.generate_temp_file(args.output)
+                f.use_frame(prev.generate_frame(f.frame_number, args.output))
+            else:
+                globals.log.error(
+                    "frame segment {s} is attempting to use the last frame "
+                    "of a non-existent previous "
+                    "segment".format(s=f.segment_number))
+                sys.exit(1)
+        # Frame segments whose frame comes from a PDF file.
+        else:
+            _, suffix = os.path.splitext(f.input_file)
+            if (suffix.lower() == ".pdf"):
+                f.use_frame(f.generate_temp_file(args.output))
+            else:
+                globals.log.error(
+                    'unexpected input file type "{s}" for frame segment '
+                    "{f}".format(s=suffix, f=f.segment_number))
+                sys.exit(1)
+        globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
+
 
 def render_podcast(segments, output):
     """Stitch together the various input components into the final podcast."""
@@ -338,47 +368,23 @@ def main():
     globals.log.debug("{fn}(): video segments = {v}".format(
         fn=fn, v=[s for s in segments if isinstance(s, VideoSegment)]))
     
-    audio_duration = sum([s.get_duration() for s in segments
-                          if isinstance(s, AudioSegment)])
-    video_duration = sum([s.get_duration() for s in segments
-                          if isinstance(s, VideoSegment)])
+    audio_segments = [s for s in segments if isinstance(s, AudioSegment)]
+    video_segments = [s for s in segments if isinstance(s, VideoSegment)]
+    
+    audio_duration = sum([s.get_duration() for s in audio_segments])
+    video_duration = sum([s.get_duration() for s in video_segments])
     globals.log.debug("{fn}(): audio duration = "
                       "{a}".format(fn=fn, a=audio_duration))
     globals.log.debug("{fn}(): video duration = "
                       "{v}".format(fn=fn, v=video_duration))
     
-    if (args.audio and audio_duration != video_duration):
-        globals.log.warning("total video duration ({v}s) doesn't match "
-                    "total audio duration "
-                    "({a}s)".format(v=video_duration, a=audio_duration))
+    if (len(audio_segments) and len(video_segments)):
+        if (audio_duration != video_duration):
+            globals.log.warning("total video duration ({v}s) doesn't match "
+                        "total audio duration "
+                        "({a}s)".format(v=video_duration, a=audio_duration))
     
-    # Set up frame segments.
-    for f in [s for s in segments if isinstance(s, FrameSegment)]:
-        globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
-        # Frame segments that use a frame from the previous segment.
-        if (f.input_file == "^"):
-            if (f.segment_number > 0):
-                prev = segments[f.segment_number - 1]
-                globals.log.debug("{fn}(): prev = {p}".format(fn=fn, p=prev))
-                prev.generate_temp_file(args.output)
-                f.use_frame(prev.generate_frame(f.frame_number, args.output))
-            else:
-                globals.log.error(
-                    "frame segment {s} is attempting to use the last frame "
-                    "of a non-existent previous "
-                    "segment".format(s=f.segment_number))
-                sys.exit(1)
-        # Frame segments whose frame comes from a PDF file.
-        else:
-            _, suffix = os.path.splitext(f.input_file)
-            if (suffix.lower() == ".pdf"):
-                f.use_frame(f.generate_temp_file(args.output))
-            else:
-                globals.log.error(
-                    'unexpected input file type "{s}" for frame segment '
-                    "{f}".format(s=suffix, f=f.segment_number))
-                sys.exit(1)
-        globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
+    process_frame_segments(args, segments)
     
     globals.log.debug("{fn}(): input files = "
                       "{i}".format(fn=fn, i=Segment.input_files()))
