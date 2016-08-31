@@ -62,7 +62,7 @@ def parse_command_line():
     parser.add_argument(
         "--configuration", "--config", "-c", dest="config", metavar="FILE",
         help="File name for the podcast segment configuration (plain text). "
-            "Run {p} --help-config for details on the file "
+            "See config_help.md details on the file "
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
@@ -91,19 +91,9 @@ def parse_command_line():
     return args
 
 
-def print_config_help():
-    """Print details of the configuration file format."""
-    fn = "print_config_help"
-    print "Help is coming."
-    sys.exit(0)
-
-
 def check_arguments(args):
     """Sanity check the command line arguments."""
     fn = "check_arguments"
-    if (args.config_help):
-        print_config_help()
-    
     if (args.quiet):
         globals.log.setLevel(logging.WARNING)
         
