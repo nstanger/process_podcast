@@ -109,24 +109,31 @@ class FFmpegCommand(ShellCommand):
 
 class FFmpegConcatCommand(FFmpegCommand):
     """An ffmpeg shell command with a complex concat filter."""
-    def __init__(self, input_options=[], output_options=[]):
+    def __init__(self, input_options=[], output_options=[],
+                 has_audio=False, has_video=False):
         super(FFmpegConcatCommand, self).__init__(
             input_options, output_options)
-        self.prepend_output_options(["-codec:a", "pcm_s16le",
-                                     "-ac", "1",
-                                     "-codec:v", "h264",
-                                     "-pix_fmt", "yuv420p",
-                                     "-map", "[vconc]",
-                                     "-map", "[anorm]"])
+        self.has_video = has_video
+        if (self.has_video):
+            self.prepend_output_options(["-codec:v", "h264",
+                                         "-pix_fmt", "yuv420p",
+                                         "-map", "[vconc]"])
+        self.has_audio = has_audio
+        if (self.has_audio):
+            self.prepend_output_options(["-codec:a", "pcm_s16le",
+                                         "-ac", "1",
+                                         "-map", "[anorm]"])
         self.filters = []
     
     def append_filter(self, filter):
         """Append a filter to the filters list."""
-        self.filters.append(filter)
+        if (filter):
+            self.filters.append(filter)
         
     def append_normalisation_filter(self):
         """Append a normalisation audio filter to the complex filter."""
-        self.append_filter("[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]")
+        if (self.has_audio):
+            self.append_filter("[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]")
     
     def append_concat_filter(self, type, segments=[]):
         """Append a concat filter to the filters list"""

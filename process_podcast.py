@@ -307,24 +307,22 @@ def process_frame_segments(args, segments):
         globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
 
 
-def render_podcast(segments, output):
+def render_podcast(audio_segments, video_segments, output):
     """Stitch together the various input components into the final podcast."""
     fn = "render_podcast"
     globals.log.info("Rendering final podcast...")
-    command = FFmpegConcatCommand()
+    command = FFmpegConcatCommand(has_audio=len(audio_segments) > 0,
+                                  has_video=len(video_segments) > 0)
     input_files = Segment.input_files()
     for f in input_files:
         if (input_files[f]):
             command.append_input_options(input_files[f])
         command.append_input_options(["-i", f])
-    for s in segments:
-        if (not isinstance(s, FrameSegment)):
-            command.append_filter(s.trim_filter())
-    command.append_concat_filter(
-        "a", [s for s in segments if isinstance(s, AudioSegment)])
+    for s in (audio_segments + video_segments):
+        command.append_filter(s.trim_filter())
+    command.append_concat_filter("a", [s for s in audio_segments])
     command.append_normalisation_filter()
-    command.append_concat_filter(
-        "v", [s for s in segments if isinstance(s, VideoSegment)])
+    command.append_concat_filter("v", [s for s in video_segments])
     command.append_output_options([output])
     globals.log.debug("{fn}(): {c}".format(fn=fn, c=command))
     command.run()
@@ -343,42 +341,44 @@ def main():
         level=logging.INFO,
         format="%(levelname)s: {p}: %(message)s".format(p=globals.PROGRAM))
     
-    args = parse_command_line()
-    check_arguments(args)
-    
-    config = get_configuration(args)
-    
-    segments = process_input_streams(config)
-    globals.log.debug("{fn}(): audio segments = {a}".format(
-        fn=fn, a=[s for s in segments if isinstance(s, AudioSegment)]))
-    globals.log.debug("{fn}(): video segments = {v}".format(
-        fn=fn, v=[s for s in segments if isinstance(s, VideoSegment)]))
-    
-    audio_segments = [s for s in segments if isinstance(s, AudioSegment)]
-    video_segments = [s for s in segments if isinstance(s, VideoSegment)]
-    
-    audio_duration = sum([s.get_duration() for s in audio_segments])
-    video_duration = sum([s.get_duration() for s in video_segments])
-    globals.log.debug("{fn}(): audio duration = "
-                      "{a}".format(fn=fn, a=audio_duration))
-    globals.log.debug("{fn}(): video duration = "
-                      "{v}".format(fn=fn, v=video_duration))
-    
-    if (len(audio_segments) and len(video_segments)):
-        if (audio_duration != video_duration):
-            globals.log.warning("total video duration ({v}s) doesn't match "
-                        "total audio duration "
-                        "({a}s)".format(v=video_duration, a=audio_duration))
-    
-    process_frame_segments(args, segments)
-    
-    globals.log.debug("{fn}(): input files = "
-                      "{i}".format(fn=fn, i=Segment.input_files()))
-    
     try:
-        render_podcast(segments, args.output)
+        args = parse_command_line()
+        check_arguments(args)
+    
+        config = get_configuration(args)
+    
+        segments = process_input_streams(config)
+        globals.log.debug("{fn}(): audio segments = {a}".format(
+            fn=fn, a=[s for s in segments if isinstance(s, AudioSegment)]))
+        globals.log.debug("{fn}(): video segments = {v}".format(
+            fn=fn, v=[s for s in segments if isinstance(s, VideoSegment)]))
+    
+        audio_segments = [s for s in segments if isinstance(s, AudioSegment)]
+        video_segments = [s for s in segments if isinstance(s, VideoSegment)]
+    
+        audio_duration = sum([s.get_duration() for s in audio_segments])
+        video_duration = sum([s.get_duration() for s in video_segments])
+        globals.log.debug("{fn}(): audio duration = "
+                          "{a}".format(fn=fn, a=audio_duration))
+        globals.log.debug("{fn}(): video duration = "
+                          "{v}".format(fn=fn, v=video_duration))
+    
+        if (len(audio_segments) and len(video_segments)):
+            if (audio_duration != video_duration):
+                globals.log.warning("total video duration ({v}s) doesn't match "
+                            "total audio duration "
+                            "({a}s)".format(v=video_duration, a=audio_duration))
+    
+        process_frame_segments(args, segments)
+    
+        globals.log.debug("{fn}(): input files = "
+                          "{i}".format(fn=fn, i=Segment.input_files()))
+    
+        render_podcast(audio_segments, video_segments, args.output)
+
         if (not args.keep):
             cleanup(segments)
+    
     except (KeyboardInterrupt):
         pass
 
