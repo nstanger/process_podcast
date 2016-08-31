@@ -70,10 +70,6 @@ def parse_command_line():
         help="Print debugging output (overrides --quiet).")
     
     parser.add_argument(
-        "--config-help",
-        help="Print information on how to write a configuration file.")
-    
-    parser.add_argument(
         "--keep", "-k", action="store_true",
         help="Don't delete any generated temporary files.")
     
