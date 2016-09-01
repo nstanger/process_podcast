@@ -276,10 +276,24 @@ def process_input_streams(config):
     return segments
 
 
+def print_progress(count, total, line_end="\r"):
+    percent = count * 100 / total
+    outof = count * 40 / total
+    bar = "|{c}{nc}| {p}%{nl}".format(
+        c="+" * outof, nc="." * (40 - outof), p=percent, nl=line_end)
+    sys.stdout.write(bar)
+    sys.stdout.flush()
+
+
 def process_frame_segments(args, segments):
     """Post-process frame segments to set frame images, etc."""
     fn = "process_frame_segments"
-    for f in [s for s in segments if isinstance(s, FrameSegment)]:
+    globals.log.info("Processing frames...")
+    frame_segments = [s for s in segments if isinstance(s, FrameSegment)]
+    n = len(frame_segments)
+    for i, f in enumerate(frame_segments):
+        if (n > 0 and not any([args.debug, args.quiet])):
+            print_progress(i, n)
         globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
         # Frame segments that use a frame from the previous segment.
         if (f.input_file == "^"):
@@ -305,6 +319,8 @@ def process_frame_segments(args, segments):
                     "{f}".format(s=suffix, f=f.segment_number))
                 sys.exit(1)
         globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
+    if (n > 0 and not any([args.debug, args.quiet])):
+        print_progress(n, n, "\n")
 
 
 def render_podcast(audio_segments, video_segments, output):
