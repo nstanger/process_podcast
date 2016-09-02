@@ -6,15 +6,26 @@ from pyparsing import *
 # https://sourceforge.net/p/pyparsing/code/HEAD/tree/trunk/src/HowToUsePyparsing.txt#l302
 
 
-STREAM_FIELDS = {"type", "filename", "num"}
+INPUTSPEC_DEFAULTS = {"type": None, "filename": None, "num": None}
+TIMESTAMP_DEFAULTS = {"hh": 0, "mm": 0, "ms": 0}
 
 
 # see http://stackoverflow.com/questions/11180622/optional-string-segment-in-pyparsing
-def assign_missing_fields(fields):
-    """Fill in missing optional field values (filename, num)."""
-    not_found = STREAM_FIELDS - set(fields.keys())
-    for k in not_found:
-        v = None
+def default_input_fields(fields):
+    """Set missing input specification values to defaults."""
+    set_defaults(fields, INPUTSPEC_DEFAULTS)
+
+
+def default_timestamp_fields(fields):
+    """Set missing timestamp values to defaults."""
+    set_defaults(fields, TIMESTAMP_DEFAULTS)
+
+
+def set_defaults(fields, defaults):
+    """Set missing field values to defaults."""
+    undefined = set(defaults.keys()) - set(fields.keys())
+    for k in undefined:
+        v = defaults[k]
         # see http://pyparsing.wikispaces.com/share/view/71042464
         fields[k] = v
         fields.append(v)
@@ -22,7 +33,6 @@ def assign_missing_fields(fields):
 
 def parser_bnf():
     """Grammar for parsing podcast configuration files."""
-
     at = Literal("@").suppress()
     caret = Literal("^")
     colon = Literal(":").suppress()
@@ -39,19 +49,21 @@ def parser_bnf():
     filename = Combine(filename_first + Optional(filename_rest))
 
     # millisecs ::= "." [0-9]+
-    millisecs = (period + 
-                 (Word(nums).setParseAction(
+    millisecs = (Word(nums).setParseAction(
                         lambda s, l, t: int(t[0][:3].ljust(3, "0")))
-                    .setResultsName("ms")))
+                    .setResultsName("ms"))
 
     # hours, minutes, seconds ::= zero_index
     hours = zero_index.setResultsName("hh")
     minutes = zero_index.setResultsName("mm")
     seconds = zero_index.setResultsName("ss")
 
-    # timestamp ::= hours ":" minutes ":" seconds [millisecs]
-    timestamp = Group(hours + colon + minutes + colon + seconds + 
-                      Optional(millisecs))
+    hours_minutes = hours + colon + minutes + colon | minutes + colon
+    secs_millisecs = (seconds + Optional(period + millisecs) |
+                      period + millisecs)
+
+    # timestamp ::= [[hours ":"] minutes ":"] seconds ["." millisecs]
+    timestamp = Optional(hours_minutes) + secs_millisecs
 
     # duration_file ::= "@", filename
     # We need a separate item for a lonely duration file timestamp so
@@ -67,7 +79,7 @@ def parser_bnf():
         [lonely_duration_file.setParseAction(
             lambda s, l, t: timestamp.parseString("00:00:00.000") + t),
          timestamp + duration_file,
-         OneOrMore(timestamp)])
+         OneOrMore(Group(timestamp.setParseAction(default_timestamp_fields)))])
 
     # last_frame ::=  "-1" | "last"
     last_frame = oneOf(["-1", "last"]).setParseAction(replaceWith(-1))
@@ -117,7 +129,7 @@ def parser_bnf():
     inputspec = (left_bracket +
                  delimitedList(
                     Or([audio_or_video_input, frame_input]), delim=":")
-                        .setParseAction(assign_missing_fields) +
+                        .setParseAction(default_input_fields) +
                  right_bracket)
 
     # segmentspec ::= inputspec [timespecs]
