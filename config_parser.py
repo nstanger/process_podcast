@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from pyparsing import *
+import sys
 
+from pyparsing import *
 # pyparsing documentation:
 # https://sourceforge.net/p/pyparsing/code/HEAD/tree/trunk/src/HowToUsePyparsing.txt#l302
 
@@ -80,56 +81,49 @@ def parser_bnf():
             lambda s, l, t: timestamp.parseString("00:00:00.000") + t),
          timestamp + duration_file,
          OneOrMore(Group(timestamp.setParseAction(default_timestamp_fields)))])
-
+    
     # last_frame ::=  "-1" | "last"
     last_frame = oneOf(["-1", "last"]).setParseAction(replaceWith(-1))
 
     # frame_number ::= ":" (zero_index | last_frame)
-    frame_number = colon + Or([zero_index, last_frame]).setResultsName("num")
+    frame_number = colon - (zero_index | last_frame).setResultsName("num")
 
     # stream_number ::= ":" zero_index
-    stream_number = colon + zero_index.setResultsName("num")
+    stream_number = colon - zero_index.setResultsName("num")
 
     # input_file ::= ":" [filename]
-    input_file = colon + Optional(filename).setResultsName("filename")
+    input_file = colon - Optional(filename).setResultsName("filename")
 
     # previous_segment ::= ":" "^"
-    previous_segment = colon + caret.setResultsName("filename")
+    previous_segment = colon - caret.setResultsName("filename")
 
     # frame_input_file ::= input_file | previous_segment
     frame_input_file = Or([input_file, previous_segment])
+
+    # av_trailer ::= input_file [stream_number]
+    av_trailer = input_file + Optional(stream_number)
 
     # frame_type ::= "frame" | "f"
     frame_type = oneOf(["f", "frame"]).setParseAction(replaceWith("frame"))
 
     # frame_input ::= frame_type [frame_input_file [frame_number]]
     frame_input = (frame_type.setResultsName("type") +
-                   Optional(frame_input_file +
-                   Optional(frame_number)))
+                   Optional(frame_input_file + Optional(frame_number)))
 
     # video_type ::= "video" | "v"
     video_type = oneOf(["v", "video"]).setParseAction(replaceWith("video"))
 
-    # video_input ::= video_type [input_file [stream_number]]
-    video_input = (video_type.setResultsName("type") +
-                   Optional(input_file +
-                   Optional(stream_number)))
-
     # audio_type ::= "audio" | "a"
     audio_type = oneOf(["a", "audio"]).setParseAction(replaceWith("audio"))
 
-    # audio_input ::= audio_type [input_file [stream_number]]
-    audio_input = (audio_type.setResultsName("type") +
-                   Optional(input_file + Optional(stream_number)))
+    # av_input ::= (audio_type | video_type) [av_trailer]
+    av_input = ((audio_type | video_type).setResultsName("type") +
+                Optional(av_trailer))
 
-    # audio_or_video_input ::= audio_input | video_input
-    audio_or_video_input = Or([audio_input, video_input])
-
-    # inputspec ::= "[" (audio_or_video_input | frame_input) "]"
-    inputspec = (left_bracket +
-                 delimitedList(
-                    Or([audio_or_video_input, frame_input]), delim=":")
-                        .setParseAction(default_input_fields) +
+    # inputspec ::= "[" (av_input | frame_input) "]"
+    inputspec = (left_bracket + 
+                 delimitedList(av_input | frame_input, delim=":")
+                        .setParseAction(default_input_fields) -
                  right_bracket)
 
     # segmentspec ::= inputspec [timespecs]
@@ -145,18 +139,28 @@ def parser_bnf():
 
 def parse_configuration_file(config_file):
     """Parse a podcast configuration file."""
-    parser = parser_bnf()
-    return parser.parseFile(config_file, parseAll=True)
+    try:
+        parser = parser_bnf()
+        result = parser.parseFile(config_file, parseAll=True)
+    except (ParseException, ParseSyntaxException) as e:
+        print("ERROR: {m}".format(m=str(e)))
+        sys.exit(1)
+    return result
 
 
 def parse_configuration_string(config_string):
     """Parse a podcast configuration file."""
-    parser = parser_bnf()
-    return parser.parseString(config_string, parseAll=True)
+    try:
+        parser = parser_bnf()
+        result = parser.parseString(config_string, parseAll=True)
+    except (ParseException, ParseSyntaxException) as e:
+        print("ERROR: {m}".format(m=str(e)))
+        sys.exit(1)
+    return result
 
 
 def test_parser():
-    tests = ["test/config1.txt", "test/config2.txt", "test/config3.txt", "test/config4.txt"]
+    tests = ["test/config1.txt", "test/config2.txt", "test/config3.txt", "test/config4.txt", "test/config5.txt"]
 
     for t in tests:
         print "==={f}===".format(f=t)
