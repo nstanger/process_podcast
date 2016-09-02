@@ -26,8 +26,6 @@ def parser_bnf():
     at = Literal("@").suppress()
     caret = Literal("^")
     colon = Literal(":").suppress()
-    comment_char = Literal("#")
-    hyphen = Literal("-")
     left_bracket = Literal("[").suppress()
     period = Literal(".").suppress()
     right_bracket = Literal("]").suppress()
