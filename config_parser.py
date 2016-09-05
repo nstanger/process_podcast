@@ -71,15 +71,15 @@ def parser_bnf():
     # that we can attach a parse action just to the lonely case. Using
     # duration_file alone means the parse action is attached to all
     # instances of duration_file.
-    duration_file = at + filename
-    lonely_duration_file = at + filename
+    duration_file = at + filename.setResultsName("filename")
+    lonely_duration_file = at + filename.setResultsName("filename")
 
     # timespecs ::= timestamp [duration_file | {timestamp}]
     # If duration_file timestamp is lonely, prepend a zero timestamp.
     timespecs = Or(
         [lonely_duration_file.setParseAction(
-            lambda s, l, t: timestamp.parseString("00:00:00.000") + t),
-         timestamp + duration_file,
+            lambda s, l, t: [timestamp.parseString("00:00:00.000"), t]),
+         Group(timestamp) + duration_file,
          OneOrMore(Group(timestamp.setParseAction(default_timestamp_fields)))])
     
     # last_frame ::=  "-1" | "last"

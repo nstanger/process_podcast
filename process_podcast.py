@@ -201,9 +201,9 @@ def process_timestamp_pair(times):
     t0 = datetime.timedelta(
         hours=times[0]["hh"], minutes=times[0]["mm"],
         seconds=times[0]["ss"], milliseconds=times[0]["ms"])
-    if (isinstance(times[1], str)):
-        t1 = t0 + get_file_duration(times[1])
-    elif (isinstance(times[1], ParseResults)):
+    if (len(times[1]) == 1): # filename
+        t1 = t0 + get_file_duration(times[1]["filename"])
+    elif (len(times[1]) == 4): # normal timestamp
         t1 = datetime.timedelta(
             hours=times[1]["hh"], minutes=times[1]["mm"],
             seconds=times[1]["ss"], milliseconds=times[1]["ms"])
