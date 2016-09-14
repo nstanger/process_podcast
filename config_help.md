@@ -11,7 +11,7 @@ Segment specifications can appear in any order (except for `^` frame inputs, see
 Input specifications
 --------------------
 
-These are of the form: `[type:filename:num]`
+These are of the form: `[type:filename:num]` (the `[]` are delimiters)
 
 `type` is mandatory, and must be one of `a`/`audio`, `v`/`video`, or `f`/`frame`. Audio and video inputs are self-explanatory. Frame inputs are special type of video input based on a single still image, which could be from a JPEG image (preferred), or automatically extracted from a video source or PDF. You need to specify a frame number for the latter (see below).
 
@@ -23,7 +23,7 @@ These are of the form: `[type:filename:num]`
 Time specifications
 -------------------
 
-These are normally just a sequence of timestamps, representing punch in and punch out times. Timestamps are in `[[hh:]mm:]ss[.fff]` format. Seconds (`ss`) are the only required component. Components can have any number of digits, but the fractional part (`fff`) is truncated to millisecond resolution. This provides considerable flexibility in specifying times, e.g., you can specify 90 minutes as `1:30:00`, `90:00`, or even just `5400`. The punch out time for a segment *must* be later than the punch in time, but otherwise you can list timestamps in any order. However, we recommend listing them chronologically for the sake of sanity!
+These are normally just a sequence of timestamps, representing punch in and punch out times. Timestamps are in `hh:mm:ss.fff` format. Seconds (`ss`) are the only required component. Components can have any number of digits, but the fractional part (`fff`) is truncated to millisecond resolution. This provides considerable flexibility in specifying times, e.g., you can specify 90 minutes as `1:30:00`, `90:00`, or even just `5400`. The punch out time for a segment *must* be later than the punch in time, but otherwise you can list timestamps in any order. However, we recommend listing them chronologically for the sake of sanity!
 
 If you provide no timestamps, then the script will generate one segment punching in at 0 and punching out at the end of the input. If you provide an even number of timestamps, each pair of timestamps (*t₁*, *t₂*) will generate a new segment punching in at *t₁* and punching out at *t₂*. If you provide an odd number of timestamps, each pair of timestamps will generate segments as above, plus one final segment punching in at the last timestamp and punching out at the end of the input.
 
