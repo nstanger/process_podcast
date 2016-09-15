@@ -276,11 +276,11 @@ def process_input_streams(config):
     return segments
 
 
-def print_progress(count, total, line_end="\r"):
-    percent = count * 100 / total
-    outof = count * 40 / total
-    bar = "|{c}{nc}| {p}%{nl}".format(
-        c="+" * outof, nc="." * (40 - outof), p=percent, nl=line_end)
+def print_progress(count, total, width=50, line_end="\r"):
+    percent = int(count * 100 / total)
+    outof = int(count * width / total)
+    bar = "{nl}[{c}{nc}] {p}% ".format(
+        c="+" * outof, nc="." * (width - outof), p=percent, nl=line_end)
     sys.stdout.write(bar)
     sys.stdout.flush()
 
