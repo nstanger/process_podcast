@@ -11,8 +11,9 @@ from pyparsing import ParseResults
 import globals
 from config_parser import (
     parse_configuration_file, parse_configuration_string)
-from shell_command import (FFprobeCommand, FFmpegConcatCommand)
+from progress_bar import (ProgressBar)
 from segment import (Segment, AudioSegment, VideoSegment, FrameSegment)
+from shell_command import (FFprobeCommand, FFmpegConcatCommand)
 
 
 class InputStreamAction(argparse.Action):
@@ -276,24 +277,15 @@ def process_input_streams(config):
     return segments
 
 
-def print_progress(count, total, width=50, line_end="\r"):
-    percent = int(count * 100 / total)
-    outof = int(count * width / total)
-    bar = "{nl}[{c}{nc}] {p}% ".format(
-        c="+" * outof, nc="." * (width - outof), p=percent, nl=line_end)
-    sys.stdout.write(bar)
-    sys.stdout.flush()
-
-
 def process_frame_segments(args, segments):
     """Post-process frame segments to set frame images, etc."""
     fn = "process_frame_segments"
     globals.log.info("Processing frames...")
     frame_segments = [s for s in segments if isinstance(s, FrameSegment)]
     n = len(frame_segments)
+    progress = ProgressBar(max_value=n, quiet=args.quiet or args.debug)
     for i, f in enumerate(frame_segments):
-        if (n > 0 and not any([args.debug, args.quiet])):
-            print_progress(i, n)
+        progress.update(i)
         globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
         # Frame segments that use a frame from the previous segment.
         if (f.input_file == "^"):
@@ -319,16 +311,17 @@ def process_frame_segments(args, segments):
                     "{f}".format(s=suffix, f=f.segment_number))
                 sys.exit(1)
         globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
-    if (n > 0 and not any([args.debug, args.quiet])):
-        print_progress(n, n, "\n")
+    progress.finish()
 
 
-def render_podcast(audio_segments, video_segments, output):
+def render_podcast(args, audio_segments, video_segments, output, duration):
     """Stitch together the various input components into the final podcast."""
     fn = "render_podcast"
     globals.log.info("Rendering final podcast...")
     command = FFmpegConcatCommand(has_audio=len(audio_segments) > 0,
-                                  has_video=len(video_segments) > 0)
+                                  has_video=len(video_segments) > 0,
+                                  max_progress=duration,
+                                  quiet=args.quiet and not args.debug)
     input_files = Segment.input_files()
     for f in input_files:
         if (input_files[f]):
@@ -390,7 +383,8 @@ def main():
         globals.log.debug("{fn}(): input files = "
                           "{i}".format(fn=fn, i=Segment.input_files()))
     
-        render_podcast(audio_segments, video_segments, args.output)
+        render_podcast(args, audio_segments, video_segments, args.output,
+                       max(audio_duration, video_duration))
 
         if (not args.keep):
             cleanup(segments)

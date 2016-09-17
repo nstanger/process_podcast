@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
+import datetime
 import distutils.spawn
 import re
-import subprocess
+
+import pexpect
+
+from progress_bar import (ProgressBar)
 
 
 class ShellCommand(object):
@@ -15,15 +19,31 @@ class ShellCommand(object):
     """
     _executable = ""
     _base_options = []
+    _expect_patterns = []
     
-    def __init__(self, input_options=[], output_options=[]):
+    @staticmethod
+    def shellquote(s):
+        """Quote a string so it can be safely pasted into the shell."""
+        # Note: pipes/shlex.quote() only wraps '' around things,
+        # it doesn't do things like \( \), which we also need.
+        regexes = [re.compile(r"\("), re.compile(r"\)"),
+                   re.compile(r"(\S+\s+[\S\s]+)"), 
+                   re.compile(r"\[([^]]+)\]$")]
+        substitutions = [r"\\(", r"\\)", r"'\1'", r"'[\1]'"]
+        for sub in zip(regexes, substitutions):
+            s = sub[0].sub(sub[1], s) if s else s
+        return s
+    
+    def __init__(self, input_options=[], output_options=[], quiet=False):
         self.input_options = input_options
         self.output_options = output_options
+        self.progress = None
+        self.process = None
     
     def __repr__(self):
         return "<{cls}: {cmd}>".format(
             cls=self.__class__.__name__,
-            cmd=" ".join(self.command_items(True)))
+            cmd=self.command_string(quote=True))
 
     def append_input_options(self, items=[]):
         """Add a list of items to the end of the input options."""
@@ -41,18 +61,55 @@ class ShellCommand(object):
         """Add a list of items at the front of the output options."""
         self.output_options = items + self.output_options
     
-    def command_items(self, debug=False):
-        """Return the list of items representing the command."""
-        return ([self._executable] + self._base_options +
-                self.input_options + self.output_options)
+    def executable_string(self, quote=False):
+        """Return the executable as a string."""
+        if quote:
+            return ShellCommand.shellquote(self._executable)
+        else:
+            return self._executable
+    
+    def argument_string(self, quote=False):
+        """Return the list of arguments as a string."""
+        args = self._base_options + self.input_options + self.output_options
+        if quote:
+            return " ".join([ShellCommand.shellquote(a) for a in args])
+        else:
+            return " ".join(args)
+    
+    def argument_list(self):
+        """Return a combined list of all arguments."""
+        return self._base_options + self.input_options + self.output_options
+    
+    def command_string(self, quote=False):
+        """Return the entire command as a string."""
+        return "{exe} {arg}".format(exe=self.executable_string(quote),
+                                    arg=self.argument_string(quote))
+    
+    def process_pattern(self, pat):
+        """Respond to a pexpect pattern. Return True on EOF."""
+        return (pat == 0)
     
     def run(self):
         """Execute the command in a subprocess."""
-        return subprocess.call(self.command_items())
+        self.process = pexpect.spawn(self.executable_string(),
+                                     self.argument_list())
+        # EOF is *always* the first pattern.
+        patterns = self.process.compile_pattern_list(
+            [pexpect.EOF] + self._expect_patterns)
+        try:
+            while True:
+                i = self.process.expect_list(patterns, timeout=None)
+                if self.process_pattern(i):
+                    break
+        finally:
+            if self.progress:
+                self.progress.finish()
+            self.process.close()
+            return self.process.exitstatus
     
     def get_output(self):
         """Execute the command in a subprocess and return the output."""
-        return subprocess.check_output(self.command_items())
+        return pexpect.run(self.command_string(quote=True))
 
 
 class ConvertCommand(ShellCommand):
@@ -76,24 +133,6 @@ class ConvertCommand(ShellCommand):
                                      "-layers", "composite",
                                      "-flatten"])
     
-    def command_items(self, debug=False):
-        """Return the list of items representing the command."""
-        base_opts = self._base_options
-        input_opts = self.input_options
-        output_opts = self.output_options
-        if (debug):
-            # Wrap frame specifiers in 'single quotes' and prefix
-            # parentheses with backslashes, so that we can copy and
-            # paste the command string directly into the shell for
-            # testing.
-            base_opts = [re.sub(r"\(", r"\\(", s)
-                         for s in self._base_options]
-            input_opts = [re.sub(r"\[(\d+)\]", r"'[\1]'", s)
-                          for s in self.input_options]
-            output_opts = [re.sub(r"\)", r"\\)", s)
-                           for s in self.output_options]
-        return ([self._executable] + base_opts + input_opts + output_opts)
-    
 
 class FFprobeCommand(ShellCommand):
     """An ffprobe shell command."""
@@ -104,15 +143,18 @@ class FFprobeCommand(ShellCommand):
 class FFmpegCommand(ShellCommand):
     """A "simple" ffmpeg shell command."""
     _executable = distutils.spawn.find_executable("ffmpeg")
-    _base_options = ["-y", "-loglevel", "error", "-nostdin"]
+    _base_options = ["-y", "-nostdin"]
         
 
 class FFmpegConcatCommand(FFmpegCommand):
     """An ffmpeg shell command with a complex concat filter."""
-    def __init__(self, input_options=[], output_options=[],
-                 has_audio=False, has_video=False):
+    _expect_patterns = [r"time=(\d\d):(\d\d):(\d\d\.\d\d)"]
+    
+    def __init__(self, input_options=[], output_options=[], quiet=False,
+                 max_progress=100, has_audio=False, has_video=False):
         super(FFmpegConcatCommand, self).__init__(
             input_options, output_options)
+        self.progress = ProgressBar(max_value=max_progress, quiet=quiet)
         self.has_video = has_video
         if (self.has_video):
             self.prepend_output_options(["-codec:v", "h264",
@@ -157,19 +199,31 @@ class FFmpegConcatCommand(FFmpegCommand):
         """
         return "{f}".format(f=";".join(self.filters))
     
-    def command_items(self, debug=False):
-        """Return the list of items representing the command."""
-        complex_filter = self.build_complex_filter()
-        output_opts = self.output_options
-        if (debug):
-            # Wrap the output streams and the entire complex filter
-            # in 'single quotes', so that we can copy and paste the
-            # command string directly into the shell for testing.
-            complex_filter = "'{f}'".format(f=complex_filter)
-            output_opts = [re.sub(r"\[(\w+)\]", r"'[\1]'", s)
-                           for s in self.output_options]
-        return ([self._executable] + self._base_options + self.input_options +
-                ["-filter_complex", complex_filter] + output_opts)
+    def argument_string(self, quote=False):
+        """Return the list of arguments as a string."""
+        args = (self._base_options + self.input_options +
+                ["-filter_complex", self.build_complex_filter()] +
+                self.output_options)
+        if quote:
+            return " ".join([ShellCommand.shellquote(a) for a in args])
+        else:
+            return " ".join(args)
+    
+    def argument_list(self):
+        """Return a combined list of all arguments."""
+        return (self._base_options + self.input_options +
+                ["-filter_complex", self.build_complex_filter()] +
+                self.output_options)
+    
+    def process_pattern(self, pat):
+        """Respond to a pexpect pattern. Return True on EOF."""
+        if (pat == 1):
+            elapsed = datetime.timedelta(
+                hours=int(self.process.match.group(1)),
+                minutes=int(self.process.match.group(2)),
+                seconds=float(self.process.match.group(3)))
+            self.progress.update(elapsed.total_seconds())
+        return (pat == 0)
     
 
 if (__name__ == "__main__"):
@@ -179,6 +233,6 @@ if (__name__ == "__main__"):
     print FFmpegCommand(input_options=["-i", "in.mov"],
                         output_options=["out.mov"])
     concat = FFmpegConcatCommand(input_options=["-i", "in.mov"],
-                                 output_options=["out.mov"])
+                                 output_options=["out.mov"], has_audio=True)
     concat.append_normalisation_filter()
     print concat
