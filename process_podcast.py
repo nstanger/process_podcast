@@ -61,10 +61,25 @@ def parse_command_line():
             "to 0 (i.e., the first audio stream in the file).")
     
     parser.add_argument(
+        "--video", "-v", metavar="FILE[:STREAM]", action=InputStreamAction,
+        help="File name for the default video input stream (can be the "
+            "same as for other input streams). You can optionally specify "
+            "the default video stream number to use if the file contains "
+            "more than one (this can be overidden in a configuration "
+            "file). If you don't specify a stream number, it defaults "
+            "to 0 (i.e., the first video stream in the file).")
+    
+    parser.add_argument(
         "--configuration", "--config", "-c", dest="config", metavar="FILE",
         help="File name for the podcast segment configuration (plain text). "
             "See config_help.md details on the file "
             "format.".format(p=globals.PROGRAM))
+    
+    parser.add_argument(
+        "--input-prefix", "-p", dest="prefix", metavar="PATH",
+        help="Path to be prefixed to all INPUT files. This includes the "
+            "configuration file, if applicable, and any files specified "
+            "within the configuration file.")
     
     parser.add_argument(
         "--debug", "-d", action="store_true",
@@ -78,15 +93,6 @@ def parse_command_line():
         "--quiet", "-q", action="store_true",
         help="Mute all console output (overridden by --debug).")
 
-    parser.add_argument(
-        "--video", "-v", metavar="FILE[:STREAM]", action=InputStreamAction,
-        help="File name for the default video input stream (can be the "
-            "same as for other input streams). You can optionally specify "
-            "the default video stream number to use if the file contains "
-            "more than one (this can be overidden in a configuration "
-            "file). If you don't specify a stream number, it defaults "
-            "to 0 (i.e., the first video stream in the file).")
-    
     args = parser.parse_args()
     
     return args
@@ -108,6 +114,14 @@ def check_arguments(args):
         globals.log.error("must specify at least one of --audio, --video, "
                           "or --config")
         sys.exit(1)
+    
+    # Prepend input files with --input-prefix where applicable.
+    # Handily, if prefix is "", os.path.join leaves the original
+    # path unchanged.
+    args.audio, args.video, args.config = map(
+        lambda f: os.path.join(args.prefix, f) if f else f,
+        [args.audio, args.video, args.config])
+            
     
 
 def get_configuration(args):
@@ -135,6 +149,9 @@ def get_configuration(args):
                             "attempting to use default {s} input file, but "
                             "--{s} hasn't been specified".format(s=type))
                         sys.exit(1)
+                else:
+                    config[i]["filename"] = os.path.join(
+                        args.prefix, config[i]["filename"])
                 # No stream number in configuration. Note: 0 is a valid
                 # stream number, so explicitly check for None.
                 if (c["num"] is None):
@@ -189,11 +206,11 @@ def make_new_segment(type, filename, punch_in, punch_out, num):
         return None
 
 
-def process_timestamp_pair(times):
+def process_timestamp_pair(args, times):
     """Constructs timedelta instances from a pair of config timestamps."""
     fn = "process_timestamp_pair"
-    globals.log.debug("{fn}(): t0 = {t}".format(fn=fn, t=times[0]))
-    globals.log.debug("{fn}(): t1 = {t}".format(fn=fn, t=times[1]))
+    globals.log.debug("{fn}(): times[0] = {t}".format(fn=fn, t=times[0]))
+    globals.log.debug("{fn}(): times[1] = {t}".format(fn=fn, t=times[1]))
     
     # If the first item in the timestamp list in the configuration file
     # is a filename, the parser inserts a zero timestamp before it. We
@@ -202,19 +219,27 @@ def process_timestamp_pair(times):
     t0 = datetime.timedelta(
         hours=times[0]["hh"], minutes=times[0]["mm"],
         seconds=times[0]["ss"], milliseconds=times[0]["ms"])
-    if (len(times[1]) == 1): # filename
-        t1 = t0 + get_file_duration(times[1]["filename"])
-    elif (len(times[1]) == 4): # normal timestamp
-        t1 = datetime.timedelta(
-            hours=times[1]["hh"], minutes=times[1]["mm"],
-            seconds=times[1]["ss"], milliseconds=times[1]["ms"])
+    if (times[1]):
+        if (len(times[1]) == 1): # filename
+            t1 = t0 + get_file_duration(
+                os.path.join(args.prefix, times[1]["filename"]))
+        elif (len(times[1]) == 4): # normal timestamp
+            t1 = datetime.timedelta(
+                hours=times[1]["hh"], minutes=times[1]["mm"],
+                seconds=times[1]["ss"], milliseconds=times[1]["ms"])
+        else:
+            globals.log.error("{fn}():unreadable timestamp {t}".format(
+                fn=fn, t=times[1]))
+            t1 = None
     else:
-        globals.log.error("unreadable timestamp {t}".format(t=times[1]))
+        t1 = None
     
+    globals.log.debug("{fn}(): t0 = {t}".format(fn=fn, t=t0))
+    globals.log.debug("{fn}(): t1 = {t}".format(fn=fn, t=t1))
     return t0, t1
 
 
-def process_time_list(type, filename, num, time_list):
+def process_time_list(args, type, filename, num, time_list):
     """Process an audio or video stream and build a list of segments."""
     if (os.path.exists(filename) and type in ["audio", "video"]):
         stream_duration = get_file_duration(filename)
@@ -232,7 +257,7 @@ def process_time_list(type, filename, num, time_list):
         # Process each pair of timestamps as punch in, out. If there's
         # an odd number of items, the last one is processed separately.
         for t in zip(time_list[::2], time_list[1::2]):
-            punch_in, punch_out = process_timestamp_pair(t)
+            punch_in, punch_out = process_timestamp_pair(args, t)
             if (punch_in == punch_out):
                 globals.log.warning(
                     "punch in ({i}s) and punch out ({o}s) times are "
@@ -253,14 +278,14 @@ def process_time_list(type, filename, num, time_list):
     # Odd number of timestamps: punch in at last timestamp,
     # out at stream duration.
     if (len(time_list) % 2 != 0):
-        punch_in, _ = process_timestamp_pair([time_list[-1], None])
+        punch_in, _ = process_timestamp_pair(args, [time_list[-1], None])
         punch_out = stream_duration - punch_in
         segments.append(make_new_segment(type, filename, punch_in,
                                          punch_out, num))
     return segments
 
 
-def process_input_streams(config):
+def process_input_streams(args, config):
     """Process a list of stream specifications and build a list of segments."""
     fn = "process_input_streams"
     globals.log.info("Processing input streams...")
@@ -272,7 +297,7 @@ def process_input_streams(config):
         globals.log.debug("{fn}(): num = {n}".format(fn=fn, n=cnf["num"]))
         globals.log.debug("{fn}(): times = {t}".format(fn=fn, t=cnf["times"]))
     
-        segments += process_time_list(cnf["type"], cnf["filename"],
+        segments += process_time_list(args, cnf["type"], cnf["filename"],
                                       cnf["num"], cnf["times"])  
     return segments
 
@@ -356,7 +381,7 @@ def main():
     
         config = get_configuration(args)
     
-        segments = process_input_streams(config)
+        segments = process_input_streams(args, config)
         globals.log.debug("{fn}(): audio segments = {a}".format(
             fn=fn, a=[s for s in segments if isinstance(s, AudioSegment)]))
         globals.log.debug("{fn}(): video segments = {v}".format(
