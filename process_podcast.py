@@ -76,7 +76,7 @@ def parse_command_line():
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
-        "--input-prefix", "-p", dest="prefix", metavar="PATH",
+        "--input-prefix", "-p", dest="prefix", metavar="PATH", default="",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
             "within the configuration file.")
@@ -116,56 +116,72 @@ def check_arguments(args):
         sys.exit(1)
     
     # Prepend input files with --input-prefix where applicable.
-    # Handily, if prefix is "", os.path.join leaves the original
+    # Handily, if prefix is "", os.path.join() leaves the original
     # path unchanged.
     args.audio, args.video, args.config = map(
         lambda f: os.path.join(args.prefix, f) if f else f,
         [args.audio, args.video, args.config])
-            
-    
+
 
 def get_configuration(args):
+    """Load podcast configuration."""
     # Fill in missing file names for default input streams.
     fn = "get_configuration"
+    # These types can have default input files and streams.
     type_mapping = {
         "audio": {"file": args.audio, "stream": args.audio_stream_number},
         "video": {"file": args.video, "stream": args.video_stream_number}}
     globals.log.info("Processing configuration...")
     if (args.config):
         config = parse_configuration_file(args.config)
+        
         # Check that applicable default input streams have been specified.
         for i, c in enumerate(config):
             type = c["type"]
+            
+            # Add prefix to filename, if applicable.
+            if c["filename"]:
+                config[i]["filename"] = os.path.join(
+                    args.prefix, config[i]["filename"])
+            
             if (type in type_mapping):
-                file = type_mapping[type]["file"]
-                stream = type_mapping[type]["stream"]
-                # No filename in configuration.
-                if (not c["filename"]):
-                    if (file):
-                        config[i]["filename"] = file
-                    # No filename on command line either.
-                    else:
-                        globals.log.error(
-                            "attempting to use default {s} input file, but "
-                            "--{s} hasn't been specified".format(s=type))
-                        sys.exit(1)
+                default_file = type_mapping[type]["file"]
+                default_stream = type_mapping[type]["stream"]
+                error_string = ("attempting to use default {s} input file, "
+                    "but --{s} hasn't been specified".format(s=type))
+            else:
+                default_file = None
+                default_stream = 0
+                error_string = ("attempting to use a default input file, "
+                    "but the {s} type doesn't support this".format(s=type))
+
+            # No filename in configuration.
+            if (not c["filename"]):
+                if (default_file):
+                    config[i]["filename"] = default_file
+                # No filename on command line either.
                 else:
-                    config[i]["filename"] = os.path.join(
-                        args.prefix, config[i]["filename"])
-                # No stream number in configuration. Note: 0 is a valid
-                # stream number, so explicitly check for None.
-                if (c["num"] is None):
-                    # Assume 0 if no stream on command line either.
-                    config[i]["num"] = 0 if stream is None else stream
+                    globals.log.error(error_string)
+                    sys.exit(1)
+            
+            # No stream number in configuration. Note: 0 is a valid
+            # stream number, so explicitly check for None.
+            if (c["num"] is None):
+                # Assume 0 if no stream on command line either.
+                if (default_stream is None):
+                    config[i]["num"] = 0
+                else:
+                    config[i]["num"] = default_stream
+    
+    # No configuration file.
     else:
         conf_list = []
         for m in type_mapping:
-            file = type_mapping[m]["file"]
-            stream = type_mapping[m]["stream"]
-            if (file and stream is not None):
-                conf_list += [
-                    "[{type}:{file}:{stream}]".format(type=m, file=file,
-                                                      stream=stream)]
+            default_file = type_mapping[m]["file"]
+            default_stream = type_mapping[m]["stream"]
+            if (default_file and default_stream is not None):
+                conf_list += ["[{type}:{file}:{stream}]".format(
+                    type=m, file=default_file, stream=default_stream)]
         globals.log.debug("{fn}(): default config = "
                           "{c}".format(fn=fn, c=conf_list))
         config = parse_configuration_string("\n".join(conf_list))
@@ -241,11 +257,14 @@ def process_timestamp_pair(args, times):
 
 def process_time_list(args, type, filename, num, time_list):
     """Process an audio or video stream and build a list of segments."""
+    fn = "process_time_list"
     if (os.path.exists(filename) and type in ["audio", "video"]):
         stream_duration = get_file_duration(filename)
     else:
         stream_duration = 0
     segments = []
+    globals.log.debug("{fn}(): stream duration = {d}".format(
+        fn=fn, d=stream_duration))
     
     # No timestamps: punch in at 0, out at stream duration.
     if (len(time_list) == 0):
