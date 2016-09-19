@@ -12,7 +12,8 @@ import globals
 from config_parser import (
     parse_configuration_file, parse_configuration_string)
 from progress_bar import (ProgressBar)
-from segment import (Segment, AudioSegment, VideoSegment, FrameSegment)
+from segment import (Segment, AudioSegment, VideoSegment,
+                     FrameSegment, SegmentException)
 from shell_command import (FFprobeCommand, FFmpegConcatCommand)
 
 
@@ -140,7 +141,7 @@ def get_configuration(args):
             type = c["type"]
             
             # Add prefix to filename, if applicable.
-            if c["filename"]:
+            if c["filename"] and (c["filename"] != "^"):
                 config[i]["filename"] = os.path.join(
                     args.prefix, config[i]["filename"])
             
@@ -330,34 +331,44 @@ def process_frame_segments(args, segments):
     globals.log.debug("{fn}(): num frames = {n}".format(fn=fn, n=n))
     progress = ProgressBar(max_value=n,
                            quiet=args.quiet or args.debug or n == 0)
+    progress.update(0)
     for i, f in enumerate(frame_segments):
-        progress.update(i)
-        globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
-        # Frame segments that use a frame from the previous segment.
-        if (f.input_file == "^"):
-            if (f.segment_number > 0):
-                prev = segments[f.segment_number - 1]
-                globals.log.debug("{fn}(): prev = {p}".format(fn=fn, p=prev))
-                prev.generate_temp_file(args.output)
-                f.use_frame(prev.generate_frame(f.frame_number, args.output))
+        try:
+            globals.log.debug(
+                "{fn}(): frame (before) = {b}".format(fn=fn, b=f))
+            # Frame segments that use a frame from the previous segment.
+            if (f.input_file == "^"):
+                if (f.segment_number > 0):
+                    prev = segments[f.segment_number - 1]
+                    globals.log.debug(
+                        "{fn}(): prev = {p}".format(fn=fn, p=prev))
+                    prev.generate_temp_file(args.output)
+                    f.use_frame(
+                        prev.generate_frame(f.frame_number, args.output))
+                else:
+                    globals.log.error(
+                        "frame segment {s} is attempting to use the last "
+                        "frame of a non-existent previous "
+                        "segment".format(s=f.segment_number))
+                    sys.exit(1)
+            # Frame segments whose frame comes from a PDF file.
             else:
-                globals.log.error(
-                    "frame segment {s} is attempting to use the last frame "
-                    "of a non-existent previous "
-                    "segment".format(s=f.segment_number))
-                sys.exit(1)
-        # Frame segments whose frame comes from a PDF file.
-        else:
-            _, suffix = os.path.splitext(f.input_file)
-            if (suffix.lower() == ".pdf"):
-                f.use_frame(f.generate_temp_file(args.output))
-            else:
-                globals.log.error(
-                    'unexpected input file type "{s}" for frame segment '
-                    "{f}".format(s=suffix, f=f.segment_number))
-                sys.exit(1)
-        globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
-    progress.finish()
+                _, suffix = os.path.splitext(f.input_file)
+                if (suffix.lower() == ".pdf"):
+                    f.use_frame(f.generate_temp_file(args.output))
+                else:
+                    globals.log.error(
+                        'unexpected input file type "{s}" for frame segment '
+                        "{f}".format(s=suffix, f=f.segment_number))
+                    sys.exit(1)
+            progress.update(i)
+            globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
+        except SegmentException as e:
+            progress.finish()
+            globals.log.error(e.message)
+            sys.exit(1)
+    else:
+        progress.finish()
 
 
 def render_podcast(args, audio_segments, video_segments, output, duration):
@@ -380,7 +391,8 @@ def render_podcast(args, audio_segments, video_segments, output, duration):
     command.append_concat_filter("v", [s for s in video_segments])
     command.append_output_options([output])
     globals.log.debug("{fn}(): {c}".format(fn=fn, c=command))
-    command.run()
+    if (command.run() != 0):
+        globals.log.error("Failed to render final podcast")
 
 
 def cleanup(segments):
@@ -432,11 +444,11 @@ def main():
         render_podcast(args, audio_segments, video_segments, args.output,
                        max(audio_duration, video_duration))
 
-        if (not args.keep):
-            cleanup(segments)
-    
     except (KeyboardInterrupt):
         pass
+    finally:
+        if (not args.keep):
+            cleanup(segments)
 
 
 if (__name__ == "__main__"):

@@ -11,6 +11,9 @@ import globals
 from shell_command import (ConvertCommand, FFprobeCommand, FFmpegCommand)
 
 
+class SegmentException(Exception):
+    pass
+
 class Segment(object):
     """A segment within the podcast.
     
@@ -57,6 +60,8 @@ class Segment(object):
         self.input_stream = input_stream
         self._temp_file = ""
         self._temp_suffix = "mov"
+        # List of temporary files to delete when cleaning up.
+        self._temp_files_list = []
         
         if (file not in self.__class__._input_files):
             self.__class__._input_files[file] = None
@@ -79,23 +84,32 @@ class Segment(object):
         """Return the duration of the segment in seconds."""
         return (self.punch_out - self.punch_in).total_seconds()
     
+    def generate_temp_filename(self, output, suffix=None):
+        """Generate a temporary filename for the segment."""
+        if not suffix:
+            suffix = self._temp_suffix
+        return os.path.extsep.join(
+            ["temp_{t}_{o}_{n:03d}".format(
+                t=self._TYPE, o=os.path.splitext(output)[0],
+                n=self.segment_number),
+             suffix])
+    
     def generate_temp_file(self, output):
         """Compile the segment from the original source file(s)."""
         fn = "generate_temp_file"
-        self._temp_file = os.path.extsep.join(
-            ["temp_{t}_{o}_{n:03d}".format(t=self._TYPE,
-                                           o=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             self._temp_suffix])
+        self._temp_file = self.generate_temp_filename(output)
         command = FFmpegCommand(
             input_options=self._input_options + ["-codec", "copy"],
             output_options=self._output_options + [self._temp_file])
         globals.log.debug("{cls}.{fn}(): {cmd}".format(
             cls=self.__class__.__name__, fn=fn, cmd=command))
         if (command.run() == 0):
+            self._temp_files_list.append(self._temp_file)
             return self._temp_file
         else:
-            return None
+            raise SegmentException(
+                "Failed to generate temporary file {f} for "
+                "{s}".format(f=self._temp_file, s=self))
     
     def temp_file(self):
         """Return the temporary file associated with the segment."""
@@ -106,9 +120,9 @@ class Segment(object):
         # Note: sometimes segments (especially frame segments) may
         # share the same temporary file. Just ignore the file not
         # found exception that occurs in these cases.
-        if (self._temp_file):
+        for f in self._temp_files_list:
             try:
-                os.remove(self._temp_file)
+                os.remove(f)
             except OSError as e:
                 if (e.errno != errno.ENOENT):
                     raise e
@@ -180,27 +194,30 @@ class VideoSegment(Segment):
                                 self._temp_frame_file])
             globals.log.debug("{cls}.{fn}(): {cmd}".format(
                 cls=self.__class__.__name__, fn=fn, cmd=command))
-            command.run()
-            command = FFprobeCommand(
-                input_options=[
-                    "-select_streams", "v",
-                    "-show_entries", "stream=nb_frames",
-                    "-print_format", "default=noprint_wrappers=1:nokey=1",
-                    self._temp_frame_file])
-            globals.log.debug("{cls}.{fn}(): {cmd}".format(
-                cls=self.__class__.__name__, fn=fn, cmd=command))
-            return int(command.get_output().strip()) - 1
+            if (command.run() == 0):
+                self._temp_files_list.append(self._temp_frame_file)
+                command = FFprobeCommand(
+                    input_options=[
+                        "-select_streams", "v",
+                        "-show_entries", "stream=nb_frames",
+                        "-print_format", "default=noprint_wrappers=1:nokey=1",
+                        self._temp_frame_file])
+                globals.log.debug("{cls}.{fn}(): {cmd}".format(
+                    cls=self.__class__.__name__, fn=fn, cmd=command))
+                return int(command.get_output().strip()) - 1
+            else:
+                raise SegmentException(
+                    "Failed to generate temporary file to get last frame "
+                    "number for {s}".format(s=self))
         else:
-            return -1
+            raise SegmentException(
+                "Can't get last frame of {s} because it has no temporary "
+                "file".format(s=self))
     
     def generate_frame(self, frame_number, output):
         """Create a JPEG file from the specified frame of the segment."""
         fn = "generate_frame"
-        temp_frame = os.path.extsep.join(
-            ["temp_{t}_{f}_{n:03d}".format(t=self._TYPE,
-                                           f=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             "jpg"])
+        temp_frame = self.generate_temp_filename(output, suffix="jpg")
         if (frame_number == -1):
             frame_number = self.get_last_frame_number()
         command = FFmpegCommand(
@@ -214,10 +231,12 @@ class VideoSegment(Segment):
         globals.log.debug("{cls}.{fn}(): {cmd}".format(
             cls=self.__class__.__name__, fn=fn, cmd=command))
         if (command.run() == 0):
-            os.remove(self._temp_frame_file)
+            self._temp_files_list.append(temp_frame)
             return temp_frame
         else:
-            return None
+            raise SegmentException(
+                "Failed to create JPEG for frame {n} of "
+                "{s}".format(n=frame_number, s=self))
     
 
 class FrameSegment(VideoSegment):
@@ -247,11 +266,7 @@ class FrameSegment(VideoSegment):
     def generate_temp_file(self, output):
         """Compile the segment from the original source file(s)."""
         fn = "generate_temp_file"
-        self._temp_file = os.path.extsep.join(
-            ["temp_{t}_{o}_{n:03d}".format(t=self._TYPE,
-                                           o=os.path.splitext(output)[0],
-                                           n=self.segment_number),
-             "jpg"])
+        self._temp_file = self.generate_temp_filename(output, suffix="jpg")
         command = ConvertCommand(
             input_options=["{f}[{n}]".format(f=self.input_file,
                                              n=self.frame_number)],
@@ -259,9 +274,12 @@ class FrameSegment(VideoSegment):
         globals.log.debug("{cls}.{fn}(): {cmd}".format(
             cls=self.__class__.__name__, fn=fn, cmd=command))
         if (command.run() == 0):
+            self._temp_files_list.append(self._temp_file)
             return self._temp_file
         else:
-            return None
+            raise SegmentException(
+                "Failed to generate temporary file {f} for "
+                "{s}".format(f=self._temp_file, s=self))
     
     def use_frame(self, frame):
         """Set the image to use for generating the frame video."""
@@ -284,19 +302,6 @@ class FrameSegment(VideoSegment):
     def trim_filter(self):
         """Return an FFMPEG trim filter for this segment."""
         return ""
-    
-    def delete_temp_files(self):
-        """Delete the temporary file(s) associated with the scene."""
-        # Note: sometimes segments (especially frame segments) may
-        # share the same temporary file. Just ignore the file not
-        # found exception that occurs in these cases.
-        if (self.input_file):
-            try:
-                os.remove(self.input_file)
-            except OSError as e:
-                if (e.errno != errno.ENOENT):
-                    raise e
-        super(FrameSegment, self).delete_temp_files()
 
 
 if (__name__ == "__main__"):

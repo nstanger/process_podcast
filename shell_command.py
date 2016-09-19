@@ -101,6 +101,8 @@ class ShellCommand(object):
                 i = self.process.expect_list(patterns, timeout=None)
                 if self.process_pattern(i):
                     break
+        except (KeyboardInterrupt):
+            pass
         finally:
             if self.progress:
                 self.progress.finish()
