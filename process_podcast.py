@@ -327,7 +327,9 @@ def process_frame_segments(args, segments):
     globals.log.info("Processing frames...")
     frame_segments = [s for s in segments if isinstance(s, FrameSegment)]
     n = len(frame_segments)
-    progress = ProgressBar(max_value=n, quiet=args.quiet or args.debug)
+    globals.log.debug("{fn}(): num frames = {n}".format(fn=fn, n=n))
+    progress = ProgressBar(max_value=n,
+                           quiet=args.quiet or args.debug or n == 0)
     for i, f in enumerate(frame_segments):
         progress.update(i)
         globals.log.debug("{fn}(): frame (before) = {b}".format(fn=fn, b=f))
