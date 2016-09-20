@@ -94,8 +94,11 @@ class Segment(object):
                 n=self.segment_number),
              suffix])
     
-    def generate_temp_file(self, output):
+    def generate_temp_file(self, output, width=0, height=0):
         """Compile the segment from the original source file(s)."""
+        # Note: width and height are currently ignored for segments
+        # in general. This may (or may not) need to change if there
+        # are multiple inputs of different dimensions.
         fn = "generate_temp_file"
         self._temp_file = self.generate_temp_filename(output)
         command = FFmpegCommand(
@@ -210,8 +213,11 @@ class VideoSegment(Segment):
                 "Can't get last frame of {s} because it has no temporary "
                 "file".format(s=self))
     
-    def generate_frame(self, frame_number, output):
+    def generate_frame(self, frame_number, output, width=2048, height=1536):
         """Create a JPEG file from the specified frame of the segment."""
+        # Note: width and height are currently ignored for video
+        # segments. This will need to change if there are multiple
+        # video inputs of different dimensions.
         fn = "generate_frame"
         temp_frame = self.generate_temp_filename(output, suffix="jpg")
         if (frame_number == -1):
@@ -259,14 +265,15 @@ class FrameSegment(VideoSegment):
                              o=self.punch_out,
                              fn=self.frame_number))
     
-    def generate_temp_file(self, output):
+    def generate_temp_file(self, output, width=2048, height=1536):
         """Compile the segment from the original source file(s)."""
         fn = "generate_temp_file"
         self._temp_file = self.generate_temp_filename(output, suffix="jpg")
         command = ConvertCommand(
-            input_options=["{f}[{n}]".format(f=self.input_file,
-                                             n=self.frame_number)],
-            output_options=["{f}".format(f=self._temp_file)])
+            input_options=["{f}[{n}]".format(
+                f=self.input_file, n=self.frame_number)],
+            output_options=["{f}".format(f=self._temp_file)],
+            width=width, height=height)
         globals.log.debug("{cls}.{fn}(): {cmd}".format(
             cls=self.__class__.__name__, fn=fn, cmd=command))
         if (command.run() == 0):

@@ -120,14 +120,15 @@ class ConvertCommand(ShellCommand):
     """An ImageMagick convert command."""
     _executable = distutils.spawn.find_executable("convert")
     _base_options = ["-density", "600",
-                     "-size", "2048x1536",
                      "xc:dimgrey", "null:", # dark grey background
                      "("]
     
-    def __init__(self, input_options=[], output_options=[]):
+    def __init__(self, input_options=[], output_options=[], width=2048, height=1536):
         super(ConvertCommand, self).__init__(input_options, output_options)
+        self._base_options = (["-size", "{w}x{h}".format(w=width, h=height)] +
+                              self._base_options)
         self.append_input_options(
-            ["-resize", "2048x1536",
+            ["-resize", "{w}x{h}".format(w=width, h=height),
              "-background", "white", 
              "-alpha", "remove",
              "-type", "truecolor", # force RGB (this and next line)
@@ -158,7 +159,6 @@ class FFprobeCommand(ShellCommand):
         modified = os.path.getmtime(self.input_options[-1])
         if (not self.entries) or (modified > self.last_modified):
             js = json.loads(self.get_output())
-            print js
             self.entries = {"format": js["format"], "stream": js["streams"][0]}
         return [self.entries[section][f] for f in find_list]
 

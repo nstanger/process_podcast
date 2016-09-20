@@ -330,7 +330,23 @@ def process_input_streams(args, config):
     return segments
 
 
-def process_frame_segments(args, segments):
+def smallest_video_dimensions(args, segments):
+    """Compute the smallest frame dimensions across all video inputs."""
+    fn = "smallest_video_dimensions"
+    width = 2048
+    height = 1536
+    for s in segments:
+        if isinstance(s, FrameSegment):
+            continue
+        command = FFprobeCommand([s.input_file])
+        globals.log.debug("{fn}(): {cmd}".format(fn=fn, cmd=command))
+        w, h = command.get_entries(find_list=["width", "height"])
+        if (w * h) < (width * height):
+            width, height = w, h
+    return width, height
+
+
+def process_frame_segments(args, segments, width, height):
     """Post-process frame segments to set frame images, etc."""
     fn = "process_frame_segments"
     globals.log.info("Processing frames...")
@@ -350,9 +366,11 @@ def process_frame_segments(args, segments):
                     prev = segments[f.segment_number - 1]
                     globals.log.debug(
                         "{fn}(): prev = {p}".format(fn=fn, p=prev))
-                    prev.generate_temp_file(args.output)
+                    prev.generate_temp_file(args.output, width=width,
+                                            height=height)
                     f.use_frame(
-                        prev.generate_frame(f.frame_number, args.output))
+                        prev.generate_frame(f.frame_number, args.output,
+                                            width=width, height=height))
                 else:
                     globals.log.error(
                         "frame segment {s} is attempting to use the last "
@@ -363,7 +381,8 @@ def process_frame_segments(args, segments):
             else:
                 _, suffix = os.path.splitext(f.input_file)
                 if (suffix.lower() == ".pdf"):
-                    f.use_frame(f.generate_temp_file(args.output))
+                    f.use_frame(f.generate_temp_file(args.output, width=width,
+                                            height=height))
                 else:
                     globals.log.error(
                         'unexpected input file type "{s}" for frame segment '
@@ -444,8 +463,12 @@ def main():
                 globals.log.warning("total video duration ({v}s) doesn't match "
                             "total audio duration "
                             "({a}s)".format(v=video_duration, a=audio_duration))
-    
-        process_frame_segments(args, segments)
+        
+        width, height = smallest_video_dimensions(args, video_segments)
+        globals.log.debug("{fn}(): width = {w}, height = "
+                          "{h}".format(fn=fn, w=width, h=height))
+        
+        process_frame_segments(args, segments, width, height)
     
         globals.log.debug("{fn}(): input files = "
                           "{i}".format(fn=fn, i=Segment.input_files()))
