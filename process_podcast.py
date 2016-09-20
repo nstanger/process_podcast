@@ -77,7 +77,7 @@ def parse_command_line():
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
-        "--input-prefix", "-p", dest="prefix", metavar="PATH", default="",
+        "--input-prefix", "-p", dest="prefix", metavar="PATH", default=".",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
             "within the configuration file.")
@@ -102,23 +102,26 @@ def parse_command_line():
 def check_arguments(args):
     """Sanity check the command line arguments."""
     fn = "check_arguments"
-    if (args.quiet):
+    if args.quiet:
         globals.log.setLevel(logging.WARNING)
         
     # --debug overrides --quiet.
-    if (args.debug):
+    if args.debug:
         globals.log.setLevel(logging.DEBUG)
         globals.log.debug("{fn}(): args = {a}".format(fn=fn, a=args))
     
     # Must specify at least one of --audio, --video, --config.
-    if (not any([args.audio, args.video, args.config])):
+    if not any([args.audio, args.video, args.config]):
         globals.log.error("must specify at least one of --audio, --video, "
                           "or --config")
         sys.exit(1)
     
+    if not os.path.exists(args.prefix):
+        globals.log.error('input prefix "{p}" does not '
+                          "exist".format(p=args.prefix))
+        sys.exit(1)
+    
     # Prepend input files with --input-prefix where applicable.
-    # Handily, if prefix is "", os.path.join() leaves the original
-    # path unchanged.
     args.audio, args.video, args.config = map(
         lambda f: os.path.join(args.prefix, f) if f else f,
         [args.audio, args.video, args.config])
@@ -192,12 +195,17 @@ def get_configuration(args):
 
 def get_file_duration(file):
     """Calculate the duration a media file as a timedelta object."""
-    command = FFprobeCommand(
-        ["-show_entries", "format=duration",
-         "-print_format", "default=noprint_wrappers=1:nokey=1",
-        file])
-    ss, ms = command.get_output().strip().split(".")
+    fn = "get_file_duration"
+    command = FFprobeCommand([file])
+    globals.log.debug("{fn}(): {cmd}".format(fn=fn, cmd=command))
+    # Only consider the first stream. If it's the only stream in the
+    # file, great; otherwise it seems reasonable to assume that all
+    # streams in the same file will have the same duration.
+    ss, ms = command.get_entries(
+        section="format", find_list=["duration"])[0].split(".")
     ms = ms[:3].ljust(3, "0")
+    globals.log.debug("{fn}(): ss = {ss}, ms = {ms}".format(fn=fn, ss=ss,
+                                                            ms=ms))
     return datetime.timedelta(seconds=int(ss), milliseconds=int(ms))
 
 
@@ -407,6 +415,7 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s: {p}: %(message)s".format(p=globals.PROGRAM))
+    segments = None
     
     try:
         args = parse_command_line()
@@ -447,7 +456,7 @@ def main():
     except (KeyboardInterrupt):
         pass
     finally:
-        if (not args.keep):
+        if segments and not args.keep:
             cleanup(segments)
 
 

@@ -196,15 +196,11 @@ class VideoSegment(Segment):
                 cls=self.__class__.__name__, fn=fn, cmd=command))
             if (command.run() == 0):
                 self._temp_files_list.append(self._temp_frame_file)
-                command = FFprobeCommand(
-                    input_options=[
-                        "-select_streams", "v",
-                        "-show_entries", "stream=nb_frames",
-                        "-print_format", "default=noprint_wrappers=1:nokey=1",
-                        self._temp_frame_file])
+                command = FFprobeCommand([self._temp_frame_file])
                 globals.log.debug("{cls}.{fn}(): {cmd}".format(
                     cls=self.__class__.__name__, fn=fn, cmd=command))
-                return int(command.get_output().strip()) - 1
+                return int(command.get_entries(
+                    section="stream", find_list=["nb_frames"])[0]) - 1
             else:
                 raise SegmentException(
                     "Failed to generate temporary file to get last frame "
