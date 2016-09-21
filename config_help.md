@@ -11,7 +11,7 @@ Segment specifications can appear in any order (except for `^` frame inputs, see
 Input specifications
 --------------------
 
-These are of the form: `[type:filename:num]` (the `[]` are delimiters)
+These are of the form: `[type:filename:num]` (the `[ ]` are delimiters)
 
 `type` is mandatory, and must be one of `a`/`audio`, `v`/`video`, or `f`/`frame`. Audio and video inputs are self-explanatory. Frame inputs are special type of video input based on a single still image, which could be from a JPEG image (preferred), or automatically extracted from a video source or PDF. You need to specify a frame number for the latter (see below).
 
