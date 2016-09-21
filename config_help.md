@@ -3,7 +3,7 @@ Podcast processor configuration files
 
 If you’re in a hurry, see the examples below :). They should be reasonably self-explanatory.
 
-The configuration file comprises one or more *segment specifications* that tell the script how to chop up and combine the various podcast input sources. Timestamps are whitespace-delimited (space or newline), but whitespace is otherwise insignificant. Use # for comments.
+The configuration file comprises one or more *segment specifications* that tell the script how to chop up and combine the various podcast input sources. Timestamps are whitespace-delimited (space or newline), but whitespace is otherwise insignificant. Use `#` for comments.
 
 Segment specifications can appear in any order (except for `^` frame inputs, see below), but this will make the file harder to understand. We recommended grouping all segment specifications of the same type in chronological order. Each segment specification starts with an *input specification*, followed by zero or more *time specifications*.
 
