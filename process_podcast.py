@@ -80,7 +80,8 @@ def parse_command_line():
         "--input-prefix", "-p", dest="prefix", metavar="PATH", default=".",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
-            "within the configuration file.")
+            "within the configuration file. Input files that already "
+            "include the input prefix will not have it added again.")
     
     parser.add_argument(
         "--debug", "-d", action="store_true",
@@ -99,9 +100,24 @@ def parse_command_line():
     return args
 
 
+def prefix_path(prefix, path):
+    """Prepend prefix to path, unless path already starts with prefix"""
+    assert(prefix is not None)
+    if not path:
+        return None
+    elif path == "." or path.startswith(prefix):
+        return path
+    else:
+        return os.path.join(prefix, path)
+
+
 def check_arguments(args):
     """Sanity check the command line arguments."""
     fn = "check_arguments"
+    # Prepend input files with --input-prefix where applicable.
+    args.audio, args.video, args.config = map(
+        prefix_path, [args.prefix] * 3, [args.audio, args.video, args.config])
+
     if args.quiet:
         globals.log.setLevel(logging.WARNING)
         
@@ -121,11 +137,6 @@ def check_arguments(args):
                           "exist".format(p=args.prefix))
         sys.exit(1)
     
-    # Prepend input files with --input-prefix where applicable.
-    args.audio, args.video, args.config = map(
-        lambda f: os.path.join(args.prefix, f) if f else f,
-        [args.audio, args.video, args.config])
-
 
 def get_configuration(args):
     """Load podcast configuration."""
@@ -145,8 +156,8 @@ def get_configuration(args):
             
             # Add prefix to filename, if applicable.
             if c["filename"] and (c["filename"] != "^"):
-                config[i]["filename"] = os.path.join(
-                    args.prefix, config[i]["filename"])
+                config[i]["filename"] = prefix_path(args.prefix,
+                                                    config[i]["filename"])
             
             if (type in type_mapping):
                 default_file = type_mapping[type]["file"]
@@ -247,7 +258,7 @@ def process_timestamp_pair(args, times):
     if (times[1]):
         if (len(times[1]) == 1): # filename
             t1 = t0 + get_file_duration(
-                os.path.join(args.prefix, times[1]["filename"]))
+                prefix_path(args.prefix, times[1]["filename"]))
         elif (len(times[1]) == 4): # normal timestamp
             t1 = datetime.timedelta(
                 hours=times[1]["hh"], minutes=times[1]["mm"],
