@@ -3,6 +3,7 @@
 import datetime
 import distutils.spawn
 import json
+import tempfile
 import os.path
 import re
 
@@ -28,10 +29,14 @@ class ShellCommand(object):
         """Quote a string so it can be safely pasted into the shell."""
         # Note: pipes/shlex.quote() only wraps '' around things,
         # it doesn't do things like \( \), which we also need.
-        regexes = [re.compile(r"\("), re.compile(r"\)"),
-                   re.compile(r"(\S+\s+[\S\s]+)"), 
-                   re.compile(r"\[([^]]+)\]$")]
-        substitutions = [r"\\(", r"\\)", r"'\1'", r"'[\1]'"]
+        regexes = [
+            # grouping parentheses for convert
+            re.compile(r"^\($"), re.compile(r"^\)$"),
+            # single quote
+            re.compile(r"'"),
+            # catch-all for non-word characters
+            re.compile(r"^([\w\W]+)$")]
+        substitutions = [r"\\(", r"\\)", r"'\''", r"'\1'"]
         for sub in zip(regexes, substitutions):
             s = sub[0].sub(sub[1], s) if s else s
         return s
@@ -251,11 +256,22 @@ class FFmpegConcatCommand(FFmpegCommand):
 
 if (__name__ == "__main__"):
     print ShellCommand()
-    print ConvertCommand(input_options=["in.pdf[12]"], output_options=["out.png"])
-    print FFprobeCommand(input_options=["-i", "in.mov"])
+    print ConvertCommand(input_options=["in.pdf[12]"],
+                         output_options=["out.png"])
+    
+    # FFprobeCommand expects the input file to exist.
+    f = tempfile.NamedTemporaryFile()
+    print FFprobeCommand(input_options=["-i", f.name])
+    f.close()
+        
     print FFmpegCommand(input_options=["-i", "in.mov"],
                         output_options=["out.mov"])
     concat = FFmpegConcatCommand(input_options=["-i", "in.mov"],
                                  output_options=["out.mov"], has_audio=True)
     concat.append_normalisation_filter()
     print concat
+    
+    print "Quoting:"
+    for s in ["foobar", "foo bar baz", "foo(bar)", "[foobar]", "foo[bar",
+              "foo 'bar'", '"foobar"', "(", ")", "'"]:
+        print "  {s} => echo {sub}".format(s=s, sub=ShellCommand.shellquote(s))
