@@ -77,10 +77,23 @@ def parse_command_line():
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
-        "--input-prefix", "-p", dest="prefix", metavar="PATH", default=".",
+        "--input-prefix", "-i", dest="prefix", metavar="PATH", default=".",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
             "within the configuration file.")
+    
+    parser.add_argument(
+        "--preview", "-p", metavar="RATE", nargs="?", const="1",
+        help="Generate a preview of the podcast by only rendering a "
+            "subset of the video frames. RATE is the number of frames "
+            "per second to render (default 1 fps). You can specify "
+            "fractions (e.g., 1/10 for one frame every 10 seconds). "
+            'NOTE: if you get a "too few arguments" error when using '
+            "this option, you've probably not provided an fps value and "
+            "placed the option just before the output filename. "
+            "Either move --preview earlier in the option list, add "
+            'a "--" between it and the output filename, or provide a '
+            "fps value.")
     
     parser.add_argument(
         "--debug", "-d", action="store_true",
@@ -416,6 +429,9 @@ def render_podcast(args, audio_segments, video_segments, output, duration):
     command.append_concat_filter("a", [s for s in audio_segments])
     command.append_normalisation_filter()
     command.append_concat_filter("v", [s for s in video_segments])
+    if args.preview:
+        globals.log.info("PREVIEW MODE: {fps} fps".format(fps=args.preview))
+        command.append_output_options(["-r", args.preview])
     command.append_output_options([output])
     globals.log.debug("{fn}(): {c}".format(fn=fn, c=command))
     if (command.run() != 0):
