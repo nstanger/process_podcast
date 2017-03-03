@@ -29,16 +29,29 @@ class ShellCommand(object):
         """Quote a string so it can be safely pasted into the shell."""
         # Note: pipes/shlex.quote() only wraps '' around things,
         # it doesn't do things like \( \), which we also need.
-        regexes = [
-            # grouping parentheses for convert
-            re.compile(r"^\($"), re.compile(r"^\)$"),
-            # single quote
-            re.compile(r"'"),
-            # catch-all for non-word characters
-            re.compile(r"^([\w\W]+)$")]
-        substitutions = [r"\\(", r"\\)", r"'\''", r"'\1'"]
-        for sub in zip(regexes, substitutions):
-            s = sub[0].sub(sub[1], s) if s else s
+        # We double-quote everything because that makes it easier
+        # to deal with single quotes.
+        if s:
+            regexes = [
+                # grouping parentheses for convert
+                re.compile(r"^(\(|\))$"),
+                # double quote (in middle of string)
+                re.compile(r'^(.+".*)$'),
+                # quotes around entire string
+                re.compile(r"""^((?P<quote>['"]).*(?P=quote))$"""),
+                # command line switch (starts with one or two "-")
+                re.compile(r"^(--?.+)$"),
+                # command path (starts with "/")
+                re.compile(r"^(/[\w/]+)$")]
+            substitutions = [r"\\\1", r"'\1'", r"\1", r"\1", r"\1"]
+            num_matches = 0
+            for subst in zip(regexes, substitutions):
+                (s, n) = subst[0].subn(subst[1], s)
+                num_matches += n
+            if num_matches == 0:
+                # catch-all for non-word characters when none of the other
+                # substitutions apply
+                s = re.compile(r"^(.*\W+.*)$").sub(r'"\1"', s)
         return s
     
     def __init__(self, input_options=[], output_options=[], quiet=False):
@@ -273,5 +286,6 @@ if (__name__ == "__main__"):
     
     print "Quoting:"
     for s in ["foobar", "foo bar baz", "foo(bar)", "[foobar]", "foo[bar",
-              "foo 'bar'", '"foobar"', "(", ")", "'"]:
+              "foo 'bar'", '"foobar"', "'foobar'", 'foo"bar', "foo.bar",
+              "(", ")", "'", "/foo/bar/baz/quux", "-f", "--foobar"]:
         print "  {s} => echo {sub}".format(s=s, sub=ShellCommand.shellquote(s))
