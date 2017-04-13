@@ -77,6 +77,11 @@ def parse_command_line():
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
+        "--no-normalise", "-n", dest="normalise", action="store_false",
+        default=True,
+        help="Disable normalisation of the source audio level.")
+    
+    parser.add_argument(
         "--input-prefix", "-i", dest="prefix", metavar="PATH", default=".",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
@@ -438,7 +443,8 @@ def render_podcast(args, audio_segments, video_segments, output, duration):
     for s in (audio_segments + video_segments):
         command.append_filter(s.trim_filter())
     command.append_concat_filter("a", [s for s in audio_segments])
-    command.append_normalisation_filter()
+    if (args.normalise):
+        command.append_normalisation_filter()
     command.append_concat_filter("v", [s for s in video_segments])
     if args.preview:
         globals.log.info("PREVIEW MODE: {fps} fps".format(fps=args.preview))
