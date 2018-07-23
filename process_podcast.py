@@ -77,6 +77,41 @@ def parse_command_line():
             "format.".format(p=globals.PROGRAM))
     
     parser.add_argument(
+        "--copy-audio", dest="process_audio", action="store_false",
+        default=True,
+        help="Disable additional processing of the source audio. The audio "
+            "will still be re-encoded using the specified audio codec "
+            "because the concatenation filter requires it, but extra "
+            "processing such as reduction of channels or normalisation "
+            "will not be carried out. (Implies --no-normalise.)")
+    
+    parser.add_argument(
+        "--copy-video", dest="process_video", action="store_false",
+        default=True,
+        help="Disable additional processing of the source video. The video "
+            "will still be re-encoded using the specified video codec "
+            "because the concatenation filter requires it, but extra "
+            "processing such as remapping of colours will not be "
+            "carried out.")
+    
+    parser.add_argument(
+        "--no-normalise", dest="normalise", action="store_false",
+        default=True,
+        help="Disable normalisation of the source audio level (implied by "
+            "--copy-audio).")
+    
+    parser.add_argument(
+        "--audio-codec", dest="audio_codec", metavar="CODEC",
+        default="pcm_s16le",
+        help="Specify ffmpeg audio codec for output (default pcm_s16le). "
+            "See the output of ffmpeg -codecs for possible codecs.")
+    
+    parser.add_argument(
+        "--video-codec", dest="video_codec", metavar="CODEC", default="h264",
+        help="Specify ffmpeg video codec for output (default h264). "
+            "See the output of ffmpeg -codecs for possible codecs.")
+    
+    parser.add_argument(
         "--input-prefix", "-i", dest="prefix", metavar="PATH", default=".",
         help="Path to be prefixed to all INPUT files. This includes the "
             "configuration file, if applicable, and any files specified "
@@ -133,6 +168,10 @@ def check_arguments(args):
 
     if args.quiet:
         globals.log.setLevel(logging.WARNING)
+    
+    # --copy-audio implies --no-normalise.
+    if not args.process_audio:
+        args.normalise = False
         
     # --debug overrides --quiet.
     if args.debug:
@@ -330,8 +369,9 @@ def process_time_list(args, type, filename, num, time_list):
     # Odd number of timestamps: punch in at last timestamp,
     # out at stream duration.
     if (len(time_list) % 2 != 0):
+        globals.log.debug("{fn}(): odd number of timestamps".format(fn=fn))
         punch_in, _ = process_timestamp_pair(args, [time_list[-1], None])
-        punch_out = stream_duration - punch_in
+        punch_out = stream_duration
         segments.append(make_new_segment(type, filename, punch_in,
                                          punch_out, num))
     return segments
@@ -429,7 +469,11 @@ def render_podcast(args, audio_segments, video_segments, output, duration):
     command = FFmpegConcatCommand(has_audio=len(audio_segments) > 0,
                                   has_video=len(video_segments) > 0,
                                   max_progress=duration,
-                                  quiet=args.quiet and not args.debug)
+                                  quiet=args.quiet and not args.debug,
+                                  process_audio=args.process_audio,
+                                  process_video=args.process_video,
+                                  audio_codec=args.audio_codec,
+                                  video_codec=args.video_codec)
     input_files = Segment.input_files()
     for f in input_files:
         if (input_files[f]):
@@ -438,7 +482,8 @@ def render_podcast(args, audio_segments, video_segments, output, duration):
     for s in (audio_segments + video_segments):
         command.append_filter(s.trim_filter())
     command.append_concat_filter("a", [s for s in audio_segments])
-    command.append_normalisation_filter()
+    if (args.normalise):
+        command.append_normalisation_filter()
     command.append_concat_filter("v", [s for s in video_segments])
     if args.preview:
         globals.log.info("PREVIEW MODE: {fps} fps".format(fps=args.preview))

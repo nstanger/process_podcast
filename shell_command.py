@@ -192,20 +192,30 @@ class FFmpegConcatCommand(FFmpegCommand):
     _expect_patterns = [r"time=(\d\d):(\d\d):(\d\d\.\d\d)"]
     
     def __init__(self, input_options=[], output_options=[], quiet=False,
-                 max_progress=100, has_audio=False, has_video=False):
+                 max_progress=100, has_audio=False, has_video=False,
+                 process_audio=True, process_video=True,
+                 audio_codec="pcm_s16le", video_codec="h264"):
         super(FFmpegConcatCommand, self).__init__(
             input_options, output_options)
         self.progress = ProgressBar(max_value=max_progress, quiet=quiet)
         self.has_video = has_video
+        self.process_video = process_video
+        self.video_codec = video_codec
         if (self.has_video):
-            self.prepend_output_options(["-codec:v", "h264",
-                                         "-pix_fmt", "yuv420p",
-                                         "-map", "[vconc]"])
+            self.prepend_output_options(["-map", "[vconc]"])
+            if (self.process_video):
+                self.prepend_output_options(["-pix_fmt", "yuv420p"])
+            self.prepend_output_options(["-codec:v", self.video_codec])
         self.has_audio = has_audio
+        self.process_audio = process_audio
+        self.audio_codec = audio_codec
         if (self.has_audio):
-            self.prepend_output_options(["-codec:a", "pcm_s16le",
-                                         "-ac", "1",
-                                         "-map", "[anorm]"])
+            if (self.process_audio):
+                self.prepend_output_options(["-ac", "1",
+                                             "-map", "[anorm]"])
+            else:
+                self.prepend_output_options(["-map", "[aconc]"])
+            self.prepend_output_options(["-codec:a", self.audio_codec])
         self.filters = []
     
     def append_filter(self, filter):
