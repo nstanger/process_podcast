@@ -278,24 +278,24 @@ class FFmpegConcatCommand(FFmpegCommand):
     
 
 if (__name__ == "__main__"):
-    print ShellCommand()
-    print ConvertCommand(input_options=["in.pdf[12]"],
-                         output_options=["out.png"])
+    print(ShellCommand())
+    print(ConvertCommand(input_options=["in.pdf[12]"],
+                         output_options=["out.png"]))
     
     # FFprobeCommand expects the input file to exist.
     f = tempfile.NamedTemporaryFile()
-    print FFprobeCommand(input_options=["-i", f.name])
+    print(FFprobeCommand(input_options=["-i", f.name]))
     f.close()
         
-    print FFmpegCommand(input_options=["-i", "in.mov"],
-                        output_options=["out.mov"])
+    print(FFmpegCommand(input_options=["-i", "in.mov"],
+                        output_options=["out.mov"]))
     concat = FFmpegConcatCommand(input_options=["-i", "in.mov"],
                                  output_options=["out.mov"], has_audio=True)
     concat.append_normalisation_filter()
-    print concat
+    print(concat)
     
-    print "Quoting:"
+    print("Quoting:")
     for s in ["foobar", "foo bar baz", "foo(bar)", "[foobar]", "foo[bar",
               "foo 'bar'", '"foobar"', "'foobar'", 'foo"bar', "foo.bar",
               "(", ")", "'", "/foo/bar/baz/quux", "-f", "--foobar"]:
-        print "  {s} => echo {sub}".format(s=s, sub=ShellCommand.shellquote(s))
+        print("  {s} => echo {sub}".format(s=s, sub=ShellCommand.shellquote(s)))

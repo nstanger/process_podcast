@@ -27,7 +27,7 @@ class ProgressBar(object):
         """Complete the progress bar by setting it to its maximum value."""
         self.update(value=self.max_value)
         if not self.quiet:
-            print
+            print()
     
     def update(self, value=0):
         """Set the current value of the progress bar and redraw it."""

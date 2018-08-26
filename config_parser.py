@@ -163,23 +163,23 @@ def test_parser():
     tests = ["test/config1.txt", "test/config2.txt", "test/config3.txt", "test/config4.txt", "test/config5.txt"]
 
     for t in tests:
-        print "==={f}===".format(f=t)
+        print("==={f}===".format(f=t))
         r = parse_configuration_file(t)
         for s in r:
-            print s
-            print "    type = {t}".format(t=s["type"])
-            print "    filename = '{f}'".format(f=s["filename"])
-            print "    num = {n}".format(n=s["num"])
-            print "    times = {t}".format(t=s["times"])
+            print(s)
+            print("    type = {t}".format(t=s["type"]))
+            print("    filename = '{f}'".format(f=s["filename"]))
+            print("    num = {n}".format(n=s["num"]))
+            print("    times = {t}".format(t=s["times"]))
             for i, t in enumerate(s["times"]):
                 if (isinstance(t, str)):
-                    print "        punch out after duration of '{f}'".format(f=t)
+                    print("        punch out after duration of '{f}'".format(f=t))
                 if (isinstance(t, ParseResults)):
                     if (i % 2 == 0):
-                        print "        punch in at:  {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"])
+                        print("        punch in at:  {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"]))
                     else:
-                        print "        punch out at: {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"])
-        print
+                        print("        punch out at: {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"]))
+        print()
 
 
 if (__name__ == "__main__"):
