@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import datetime
 import distutils.spawn
 import json
 import tempfile
-import os.path
+from pathlib import Path
 import re
 
 import pexpect
@@ -168,13 +168,13 @@ class FFprobeCommand(ShellCommand):
         super(FFprobeCommand, self).__init__(input_options, output_options)
         self.entries = None
         # The input file should be the last input option.
-        assert(os.path.exists(self.input_options[-1]))
-        self.last_modified = os.path.getmtime(self.input_options[-1])
+        assert(Path(self.input_options[-1]).exists())
+        self.last_modified = Path(self.input_options[-1]).stat().st_mtime
     
     def get_entries(self, section="stream", find_list=[]):
         """Fetch specified attributes from the input file."""
         # Re-fetch if the file's changed since we last looked.
-        modified = os.path.getmtime(self.input_options[-1])
+        modified = Path(self.input_options[-1]).stat().st_mtime
         if (not self.entries) or (modified > self.last_modified):
             js = json.loads(self.get_output())
             self.entries = {"format": js["format"], "stream": js["streams"][0]}

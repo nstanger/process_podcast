@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import datetime
 import logging
-import os.path
+from pathlib import Path, PurePath
 import sys
 
 from pyparsing import ParseResults
@@ -156,7 +156,7 @@ def prefix_path(prefix, path):
     elif path == "." or path.startswith(prefix):
         return path
     else:
-        return os.path.join(prefix, path)
+        return Path(prefix, path)
 
 
 def check_arguments(args):
@@ -184,7 +184,7 @@ def check_arguments(args):
                           "or --config")
         sys.exit(1)
     
-    if not os.path.exists(args.prefix):
+    if not Path(args.prefix).exists():
         globals.log.error('input prefix "{p}" does not '
                           "exist".format(p=args.prefix))
         sys.exit(1)
@@ -330,7 +330,7 @@ def process_timestamp_pair(args, times):
 def process_time_list(args, type, filename, num, time_list):
     """Process an audio or video stream and build a list of segments."""
     fn = "process_time_list"
-    if (os.path.exists(filename) and type in ["audio", "video"]):
+    if (Path(filename).exists() and type in ["audio", "video"]):
         stream_duration = get_file_duration(filename)
     else:
         stream_duration = 0
@@ -443,7 +443,7 @@ def process_frame_segments(args, segments, width, height):
                     sys.exit(1)
             # Frame segments whose frame comes from a PDF file.
             else:
-                _, suffix = os.path.splitext(f.input_file)
+                suffix = PurePath(f.input_file).suffix
                 if (suffix.lower() == ".pdf"):
                     f.use_frame(f.generate_temp_file(args.output, width=width,
                                             height=height))

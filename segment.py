@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from collections import OrderedDict
 import errno
 import itertools
 import logging
 import os
-import os.path
+from pathlib import Path
 
 import globals
 from shell_command import (ConvertCommand, FFprobeCommand, FFmpegCommand)
@@ -88,11 +88,9 @@ class Segment(object):
         """Generate a temporary filename for the segment."""
         if not suffix:
             suffix = self._temp_suffix
-        return os.path.extsep.join(
-            ["temp_{t}_{o}_{n:03d}".format(
-                t=self._TYPE, o=os.path.splitext(output)[0],
-                n=self.segment_number),
-             suffix])
+        return Path("temp_{t}_{o}_{n:03d}".format(
+            t=self._TYPE, o=Path(output).stem,
+            n=self.segment_number)).with_suffix(suffix)
     
     def generate_temp_file(self, output, width=0, height=0):
         """Compile the segment from the original source file(s)."""
