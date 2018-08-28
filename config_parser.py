@@ -2,7 +2,13 @@
 
 import sys
 
-from pyparsing import *
+from pyparsing import (
+    alphanums, delimitedList, nums, oneOf,
+    pythonStyleComment, replaceWith,
+    Combine, Group, Literal, OneOrMore, Optional, Or,
+    ParseException, ParseSyntaxException, ParseResults,
+    Word, ZeroOrMore,
+)
 # pyparsing documentation:
 # https://sourceforge.net/p/pyparsing/code/HEAD/tree/trunk/src/HowToUsePyparsing.txt#l302
 
