@@ -21,7 +21,7 @@ class Segment(object):
     point (both in seconds).
     """
     # Automatic segment number generator.
-    _new_segment_num = itertools.count().next
+    _new_segment_num = next(itertools.count())
     
     # Keep track of input files in the order they're loaded, so that we
     # can easily reference them by index in the ffmpeg command (i.e.,
