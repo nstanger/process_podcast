@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import datetime
-import distutils.spawn
 import json
 import tempfile
 from pathlib import Path
 import re
+import shutil
 
 import pexpect
 
@@ -136,7 +136,7 @@ class ShellCommand(object):
 
 class ConvertCommand(ShellCommand):
     """An ImageMagick convert command."""
-    _executable = distutils.spawn.find_executable("convert")
+    _executable = shutil.which("convert")
     _base_options = ["-density", "600",
                      "xc:dimgrey", "null:", # dark grey background
                      "("]
@@ -159,7 +159,7 @@ class ConvertCommand(ShellCommand):
 
 class FFprobeCommand(ShellCommand):
     """An ffprobe shell command."""
-    _executable = distutils.spawn.find_executable("ffprobe")
+    _executable = shutil.which("ffprobe")
     _base_options = ["-loglevel", "error",
                      "-show_entries", "format:stream",
                      "-print_format", "json"]
@@ -183,7 +183,7 @@ class FFprobeCommand(ShellCommand):
     
 class FFmpegCommand(ShellCommand):
     """A "simple" ffmpeg shell command."""
-    _executable = distutils.spawn.find_executable("ffmpeg")
+    _executable = shutil.which("ffmpeg")
     _base_options = ["-y", "-nostdin"]
         
 
