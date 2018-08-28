@@ -3,5 +3,12 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"python.formatting.provider": "yapf",
+		"python.formatting.yapfPath": "${env:HOME}/.virtualenvs/process_podcast/bin/yapf",
+		"python.jediPath": "${env:HOME}/.virtualenvs/process_podcast/lib/python3.7/site-packages",
+		"python.linting.pylintPath": "${env:HOME}/.virtualenvs/process_podcast/bin/pylint",
+		"python.pythonPath": "${env:HOME}/.virtualenvs/process_podcast/bin/python",
+	}
 }
