@@ -178,13 +178,11 @@ def test_parser():
             print("    num = {n}".format(n=s["num"]))
             print("    times = {t}".format(t=s["times"]))
             for i, t in enumerate(s["times"]):
-                if (isinstance(t, str)):
-                    print("        punch out after duration of '{f}'".format(f=t))
-                if (isinstance(t, ParseResults)):
-                    if (i % 2 == 0):
-                        print("        punch in at:  {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"]))
-                    else:
-                        print("        punch out at: {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"]))
+                print("        punch {io} ".format(io="in" if i % 2 == 0 else "out"), end="")
+                if len(t) > 1:
+                    print("at:  {hh:02d}:{mm:02d}:{ss:02d}.{ms:03d}".format(hh=t["hh"], mm=t["mm"], ss=t["ss"], ms=t["ms"]))
+                else:
+                    print("after duration of '{f}'".format(f=t["filename"]))
         print()
 
 
