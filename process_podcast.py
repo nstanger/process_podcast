@@ -13,7 +13,7 @@ from config_parser import (
     parse_configuration_file, parse_configuration_string)
 from progress_bar import (ProgressBar)
 from segment import (Segment, AudioSegment, VideoSegment,
-                     FrameSegment, SegmentException)
+                     FrameSegment, SegmentError)
 from shell_command import (FFprobeCommand, FFmpegConcatCommand)
 
 
@@ -454,9 +454,9 @@ def process_frame_segments(args, segments, width, height):
                     sys.exit(1)
             progress.update(i)
             globals.log.debug("{fn}(): frame (after) = ""{a}".format(fn=fn, a=f))
-        except SegmentException as e:
+        except SegmentError as e:
             progress.finish()
-            globals.log.error(e.message)
+            globals.log.exception(e)
             sys.exit(1)
     else:
         progress.finish()

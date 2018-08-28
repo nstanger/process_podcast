@@ -11,7 +11,7 @@ import globals
 from shell_command import (ConvertCommand, FFprobeCommand, FFmpegCommand)
 
 
-class SegmentException(Exception):
+class SegmentError(Exception):
     pass
 
 class Segment(object):
@@ -108,7 +108,7 @@ class Segment(object):
             self._temp_files_list.append(self._temp_file)
             return self._temp_file
         else:
-            raise SegmentException(
+            raise SegmentError(
                 "Failed to generate temporary file {f} for "
                 "{s}".format(f=self._temp_file, s=self))
     
@@ -203,11 +203,11 @@ class VideoSegment(Segment):
                 return int(command.get_entries(
                     section="stream", find_list=["nb_frames"])[0]) - 1
             else:
-                raise SegmentException(
+                raise SegmentError(
                     "Failed to generate temporary file to get last frame "
                     "number for {s}".format(s=self))
         else:
-            raise SegmentException(
+            raise SegmentError(
                 "Can't get last frame of {s} because it has no temporary "
                 "file".format(s=self))
     
@@ -234,7 +234,7 @@ class VideoSegment(Segment):
             self._temp_files_list.append(temp_frame)
             return temp_frame
         else:
-            raise SegmentException(
+            raise SegmentError(
                 "Failed to create JPEG for frame {n} of "
                 "{s}".format(n=frame_number, s=self))
     
@@ -278,7 +278,7 @@ class FrameSegment(VideoSegment):
             self._temp_files_list.append(self._temp_file)
             return self._temp_file
         else:
-            raise SegmentException(
+            raise SegmentError(
                 "Failed to generate temporary file {f} for "
                 "{s}".format(f=self._temp_file, s=self))
     
