@@ -103,8 +103,8 @@ class TestShellCommand(unittest.TestCase):
         self.assertEqual(self.command.input_options, ["bar", "foo"])
         # prepend ["baz", 42] => ["baz", 42, "bar", "foo"]
         self.command.prepend_input_options(["baz", 42])
-        self.assertEqual
-        self.command.input_options, ["baz", 42, "bar", "foo"])
+        self.assertEqual(
+            self.command.input_options, ["baz", 42, "bar", "foo"])
 
     def test_append_output_options(self):
         """Test method ShellCommand.append_output_options().
