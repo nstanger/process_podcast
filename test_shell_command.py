@@ -173,11 +173,11 @@ class TestShellCommand(unittest.TestCase):
         """ Test method ShellCommand.process_pattern().
         """
         # True on EOF (0)
-        self.assertEqual(self.command.process_pattern(0), True)
+        self.assertTrue(self.command.process_pattern(0))
         # False on anythingthing else
-        self.assertEqual(self.command.process_pattern(1), False)
-        self.assertEqual(self.command.process_pattern(-1), False)
-        self.assertEqual(self.command.process_pattern(None), False)
+        self.assertFalse(self.command.process_pattern(1))
+        self.assertFalse(self.command.process_pattern(-1))
+        self.assertFalse(self.command.process_pattern(None))
 
     # The following two will require mocking of pexpect?
     def test_run(self):
