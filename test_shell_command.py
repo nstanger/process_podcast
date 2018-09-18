@@ -43,7 +43,8 @@ class TestShellCommand(unittest.TestCase):
         # 'foobar' => 'foobar'
         self.assertEqual(ShellCommand.shellquote("'foobar'"), "'foobar'")
         # foo 'bar' => "foo 'bar'"
-        self.assertEqual(ShellCommand.shellquote("foo 'bar'"), '"foo \'bar\'"')
+        self.assertEqual(
+            ShellCommand.shellquote("foo 'bar'"), '"foo \'bar\'"')
         # foo"bar => 'foo"bar'
         self.assertEqual(ShellCommand.shellquote('foo"bar'), '\'foo"bar\'')
         # foo.bar => "foo.bar"
@@ -83,7 +84,8 @@ class TestShellCommand(unittest.TestCase):
         self.assertEqual(self.command.input_options, ["foo", "bar"])
         # append ["baz", 42] => ["foo", "bar", "baz", 42]
         self.command.append_input_options(["baz", 42])
-        self.assertEqual(self.command.input_options, ["foo", "bar", "baz", 42])
+        self.assertEqual(
+            self.command.input_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_input_options(self):
         """Test method ShellCommand.prepend_input_options().
@@ -101,7 +103,8 @@ class TestShellCommand(unittest.TestCase):
         self.assertEqual(self.command.input_options, ["bar", "foo"])
         # prepend ["baz", 42] => ["baz", 42, "bar", "foo"]
         self.command.prepend_input_options(["baz", 42])
-        self.assertEqual(self.command.input_options, ["baz", 42, "bar", "foo"])
+        self.assertEqual
+        self.command.input_options, ["baz", 42, "bar", "foo"])
 
     def test_append_output_options(self):
         """Test method ShellCommand.append_output_options().
@@ -119,7 +122,8 @@ class TestShellCommand(unittest.TestCase):
         self.assertEqual(self.command.output_options, ["foo", "bar"])
         # append ["baz", 42] => ["foo", "bar", "baz", 42]
         self.command.append_output_options(["baz", 42])
-        self.assertEqual(self.command.output_options, ["foo", "bar", "baz", 42])
+        self.assertEqual(
+            self.command.output_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_output_options(self):
         """Test method ShellCommand.prepend_output_options.
@@ -137,7 +141,8 @@ class TestShellCommand(unittest.TestCase):
         self.assertEqual(self.command.output_options, ["bar", "foo"])
         # prepend ["baz", 42] => ["baz", 42, "bar", "foo"]
         self.command.prepend_output_options(["baz", 42])
-        self.assertEqual(self.command.output_options, ["baz", 42, "bar", "foo"])
+        self.assertEqual(
+            self.command.output_options, ["baz", 42, "bar", "foo"])
 
     def test_executable_string(self):
         """Test method ShellCommand.executable_string().
@@ -168,6 +173,10 @@ class TestShellCommand(unittest.TestCase):
         # executable_string() and argument_string(). Thus, the result
         # should be " " regardless of the value of quote.
         self.assertEqual(self.command.command_string(quote=True), " ")
+        # Add an option that needs to be quoted.
+        self.command.append_output_options(["argle bargle"])
+        self.assertEqual(
+            self.command.command_string(quote=True), ' "argle bargle"')
 
     def test_process_pattern(self):
         """ Test method ShellCommand.process_pattern().
