@@ -9,19 +9,26 @@ class TestShellCommand(unittest.TestCase):
     """Test the ShellCommand class.
     """
 
+    # Local ShellCommand.
+    command = None
+
     def setUp(self):
-        """Test initialisation.
+        """Initialisation. Make sure the input and output options are
+        explicitly set to [] otherwise they hang around from previous
+        tests.
         """
-        self.command = ShellCommand()
+        self.command = ShellCommand(input_options=[], output_options=[])
 
     def tearDown(self):
-        """Test cleanup.
+        """Cleanup.
         """
-        del(self.command)
+        self.command = None
 
     def test_shellquote(self):
         """Test static method ShellCommand.shellquote().
         """
+        # None => None
+        self.assertIsNone(ShellCommand.shellquote(None))
         # empty => empty
         self.assertEqual(ShellCommand.shellquote(""), "")
         # foobar => foobar
