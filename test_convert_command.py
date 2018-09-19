@@ -6,7 +6,7 @@ from shell_command import (
 )
 
 
-class TestConvertCommand(unittest.TestCase):
+class ConvertCommandTestCase(unittest.TestCase):
     """Test the ConvertCommand class.
     """
 

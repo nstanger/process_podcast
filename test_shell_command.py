@@ -5,7 +5,7 @@ from shell_command import (
 )
 
 
-class TestShellCommand(unittest.TestCase):
+class ShellCommandTestCase(unittest.TestCase):
     """Test the ShellCommand class.
     """
 

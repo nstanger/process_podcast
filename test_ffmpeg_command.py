@@ -8,7 +8,7 @@ from shell_command import (
 )
 
 
-class TestFFmpegCommand(unittest.TestCase):
+class FFmpegCommandTestCase(unittest.TestCase):
     """Test the FFmpegCommand class.
     """
 

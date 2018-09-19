@@ -8,7 +8,7 @@ from shell_command import (
 )
 
 
-class TestFFprobeCommand(unittest.TestCase):
+class FFprobeCommandTestCase(unittest.TestCase):
     """Test the FFprobeCommand class.
     """
 
