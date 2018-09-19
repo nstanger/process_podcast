@@ -1,11 +1,10 @@
 import unittest
 
-from shell_command import (
-    ShellCommand, ConvertCommand, FFmpegConcatCommand, FFprobeCommand
-)
+from shell_command import ShellCommand
+from test_shared import ShellCommandSharedTestCase
 
 
-class ShellCommandTestCase(unittest.TestCase):
+class ShellCommandTestCase(ShellCommandSharedTestCase):
     """Test the ShellCommand class.
     """
 
@@ -15,6 +14,10 @@ class ShellCommandTestCase(unittest.TestCase):
         tests.
         """
         self.command = ShellCommand(input_options=[], output_options=[])
+        self.expected_executable = ""
+        self.expected_base_options = []
+        self.expected_input_options = []
+        self.expected_output_options = []
 
     def tearDown(self):
         """Cleanup.
@@ -141,40 +144,6 @@ class ShellCommandTestCase(unittest.TestCase):
         self.assertEqual(
             self.command.output_options, ["baz", 42, "bar", "foo"])
 
-    def test_executable_string(self):
-        """Test method ShellCommand.executable_string().
-        """
-        # Always "" in the base class.
-        self.assertEqual(self.command.executable_string(quote=False), "")
-        self.assertEqual(self.command.executable_string(quote=True), "")
-
-    def test_argument_string(self):
-        """Test method ShellCommand.argument_string().
-        """
-        # Always "" in the base class.
-        self.assertEqual(self.command.argument_string(quote=False), "")
-        self.assertEqual(self.command.argument_string(quote=True), "")
-
-    def test_argument_list(self):
-        """Test method ShellCommand.argument_list().
-        """
-        # Always [] in the base class.
-        self.assertEqual(self.command.argument_list(), [])
-
-    def test_command_string(self):
-        """Test method ShellCommand.command_string().
-        """
-        # Always " " in the base class.
-        self.assertEqual(self.command.command_string(quote=False), " ")
-        # Subtlety: command_string() passes the quote argument on to
-        # executable_string() and argument_string(). Thus, the result
-        # should be " " regardless of the value of quote.
-        self.assertEqual(self.command.command_string(quote=True), " ")
-        # Add an option that needs to be quoted.
-        self.command.append_output_options(["argle bargle"])
-        self.assertEqual(
-            self.command.command_string(quote=True), ' "argle bargle"')
-
     def test_process_pattern(self):
         """ Test method ShellCommand.process_pattern().
         """
@@ -195,3 +164,8 @@ class ShellCommandTestCase(unittest.TestCase):
         """Test method ShellCommand.get_output().
         """
         pass
+
+
+# Remove ShellCommandSharedTestCase from the namespace so we don't run
+# the shared tests twice. See <https://stackoverflow.com/a/22836015>.
+del(ShellCommandSharedTestCase)
