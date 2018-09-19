@@ -60,7 +60,6 @@ class TestFFmpegCommand(unittest.TestCase):
     def test_argument_string(self):
         """Test that the argument string matches expected.
         """
-        self.maxDiff = None
         args = (self.expected_base_options + self.expected_input_options +
             self.expected_output_options)
         self.assertEqual(self.command.argument_string(quote=False),
