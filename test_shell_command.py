@@ -9,9 +9,6 @@ class TestShellCommand(unittest.TestCase):
     """Test the ShellCommand class.
     """
 
-    # Local ShellCommand.
-    command = None
-
     def setUp(self):
         """Initialisation. Make sure the input and output options are
         explicitly set to [] otherwise they hang around from previous

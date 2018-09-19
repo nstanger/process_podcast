@@ -10,45 +10,34 @@ class TestConvertCommand(unittest.TestCase):
     """Test the ConvertCommand class.
     """
 
-    # Local ConvertCommand.
-    command = None
-
-    # Path to convert executable.
-    expected_executable = shutil.which("convert")
-
-    # Expected base options.
-    expected_base_options = [
-        "-size", "2048x1536",
-        "-density", "600",
-        "xc:dimgrey", "null:",
-        "("
-    ]
-
-    # Expected input options.
-    expected_input_options = [
-        "foo",
-        "-resize", "2048x1536",
-        "-background", "white", 
-        "-alpha", "remove",
-        "-type", "truecolor",
-        "-define", "colorspace:auto-grayscale=off",
-    ]
-
-    # Expected output options.
-    expected_output_options = [
-        ")",
-        "-gravity", "center",
-        "-layers", "composite",
-        "-flatten",
-        "bar",
-    ]
-
     def setUp(self):
         """Initialisation. Make sure the input and output options are
         explicitly set otherwise they hang around from previous tests.
         """
         self.command = ConvertCommand(
             input_options=["foo"], output_options=["bar"])
+        self.expected_executable = shutil.which("convert")
+        self.expected_base_options = [
+            "-size", "2048x1536",
+            "-density", "600",
+            "xc:dimgrey", "null:",
+            "("
+        ]
+        self.expected_input_options = [
+            "foo",
+            "-resize", "2048x1536",
+            "-background", "white", 
+            "-alpha", "remove",
+            "-type", "truecolor",
+            "-define", "colorspace:auto-grayscale=off",
+        ]
+        self.expected_output_options = [
+            ")",
+            "-gravity", "center",
+            "-layers", "composite",
+            "-flatten",
+            "bar",
+        ]
 
     def tearDown(self):
         """Cleanup.
