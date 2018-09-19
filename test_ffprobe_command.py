@@ -19,15 +19,15 @@ class TestFFprobeCommand(unittest.TestCase):
         """
         self.tmpfile = tempfile.NamedTemporaryFile()
         self.command = FFprobeCommand(
-            input_options=["foo", self.tmpfile.name], output_options=["bar"])
+            input_options=["-i", self.tmpfile.name], output_options=[])
         self.expected_executable = shutil.which("ffprobe")
         self.expected_base_options = [
             "-loglevel", "error",
             "-show_entries", "format:stream",
             "-print_format", "json",
         ]
-        self.expected_input_options = ["foo", self.tmpfile.name]
-        self.expected_output_options = ["bar"]
+        self.expected_input_options = ["-i", self.tmpfile.name]
+        self.expected_output_options = []
 
     def tearDown(self):
         """Cleanup.

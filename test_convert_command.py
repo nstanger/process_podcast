@@ -15,7 +15,7 @@ class TestConvertCommand(unittest.TestCase):
         explicitly set otherwise they hang around from previous tests.
         """
         self.command = ConvertCommand(
-            input_options=["foo"], output_options=["bar"])
+            input_options=["in.pdf[12]"], output_options=["out.png"])
         self.expected_executable = shutil.which("convert")
         self.expected_base_options = [
             "-size", "2048x1536",
@@ -24,7 +24,7 @@ class TestConvertCommand(unittest.TestCase):
             "("
         ]
         self.expected_input_options = [
-            "foo",
+            "in.pdf[12]",
             "-resize", "2048x1536",
             "-background", "white", 
             "-alpha", "remove",
@@ -36,7 +36,7 @@ class TestConvertCommand(unittest.TestCase):
             "-gravity", "center",
             "-layers", "composite",
             "-flatten",
-            "bar",
+            "out.png",
         ]
 
     def tearDown(self):
