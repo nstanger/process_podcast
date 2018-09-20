@@ -5,14 +5,12 @@ from test_shared import ShellCommandSharedTestCase
 
 
 class ShellCommandTestCase(ShellCommandSharedTestCase):
-    """Test the ShellCommand class.
-    """
+    """Test the ShellCommand class."""
 
     def setUp(self):
-        """Initialisation. Make sure the input and output options are
-        explicitly set to [] otherwise they hang around from previous
-        tests.
-        """
+        """Set up for test."""
+        # Make sure the input and output options are explicitly set to
+        # [] otherwise they hang around from previous tests.
         self.command = ShellCommand(input_options=[], output_options=[])
         self.expected_executable = ""
         self.expected_base_options = []
@@ -21,13 +19,11 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
         self.expected_output_options = []
 
     def tearDown(self):
-        """Cleanup.
-        """
+        """Clean up after test."""
         self.command = None
 
     def test_shellquote(self):
-        """Test static method ShellCommand.shellquote().
-        """
+        """Test shell quoting (static method)."""
         with self.subTest(msg="None ⇒ None"):
             self.assertIsNone(ShellCommand.shellquote(None))
         with self.subTest(msg='(empty string) ⇒ (empty string)'):
@@ -78,8 +74,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
             self.assertEqual(ShellCommand.shellquote("'"), '"\'"')
 
     def test_append_input_options(self):
-        """Test method ShellCommand.append_input_options().
-        """
+        """Test appending to input options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.input_options, [])
         with self.subTest(msg="appending [] ⇒ []"):
@@ -98,8 +93,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
                 self.command.input_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_input_options(self):
-        """Test method ShellCommand.prepend_input_options().
-        """
+        """Test prepending to input options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.input_options, [])
         with self.subTest(msg="prepending [] ⇒ []"):
@@ -118,8 +112,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
                 self.command.input_options, ["baz", 42, "bar", "foo"])
 
     def test_append_output_options(self):
-        """Test method ShellCommand.append_output_options().
-        """
+        """Test appending to output options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.output_options, [])
         with self.subTest(msg="appending [] ⇒ []"):
@@ -138,8 +131,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
                 self.command.output_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_output_options(self):
-        """Test method ShellCommand.prepend_output_options.
-        """
+        """Test prepending to output options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.output_options, [])
         with self.subTest(msg="prepending [] ⇒ []"):
@@ -158,8 +150,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
                 self.command.output_options, ["baz", 42, "bar", "foo"])
 
     def test_process_pattern(self):
-        """ Test method ShellCommand.process_pattern().
-        """
+        """ Test pattern processing."""
         # True on EOF (0)
         with self.subTest(msg="returns True on EOF"):
             self.assertTrue(self.command.process_pattern(0))
@@ -173,13 +164,11 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
 
     # The following two will require mocking of pexpect?
     def test_run(self):
-        """Test method ShellCommand.run().
-        """
+        """Test running of subprocess."""
         pass
 
     def test_get_output(self):
-        """Test method ShellCommand.get_output().
-        """
+        """Test getting output from subprocess."""
         pass
 
 

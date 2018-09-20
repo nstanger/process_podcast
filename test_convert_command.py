@@ -6,13 +6,12 @@ from test_shared import ShellCommandSharedTestCase
 
 
 class ConvertCommandTestCase(ShellCommandSharedTestCase):
-    """Test the ConvertCommand class.
-    """
+    """Test the ConvertCommand class."""
 
     def setUp(self):
-        """Initialisation. Make sure the input and output options are
-        explicitly set otherwise they hang around from previous tests.
-        """
+        """Set up for test."""
+        # Make sure the input and output options are explicitly set,
+        # otherwise they hang around from previous tests.
         self.command = ConvertCommand(
             input_options=["in.pdf[12]"], output_options=["out.png"])
         self.expected_executable = shutil.which("convert")
@@ -40,8 +39,7 @@ class ConvertCommandTestCase(ShellCommandSharedTestCase):
         ]
 
     def tearDown(self):
-        """Cleanup.
-        """
+        """Clean up after test."""
         self.command = None
     
 

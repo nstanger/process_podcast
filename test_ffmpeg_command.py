@@ -8,14 +8,12 @@ from test_shared import ShellCommandSharedTestCase
 
 
 class FFmpegCommandTestCase(ShellCommandSharedTestCase):
-    """Test the FFmpegCommand class.
-    """
+    """Test the FFmpegCommand class."""
 
     def setUp(self):
-        """Initialisation. Make sure the input and output options are
-        explicitly set otherwise they hang around from previous tests.
-        A fresh temporary file is created for each test.
-        """
+        """Set up for test."""
+        # Make sure the input and output options are explicitly set,
+        # otherwise they hang around from previous tests.
         self.command = FFmpegCommand(
             input_options=["-i", "in.mov"], output_options=["out.mov"])
         self.expected_executable = shutil.which("ffmpeg")
@@ -25,8 +23,7 @@ class FFmpegCommandTestCase(ShellCommandSharedTestCase):
         self.expected_output_options = ["out.mov"]
 
     def tearDown(self):
-        """Cleanup.
-        """
+        """Clean up after test."""
         self.command = None
     
 

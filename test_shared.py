@@ -4,14 +4,12 @@ from shell_command import ShellCommand
 
 
 class ShellCommandSharedTestCase(unittest.TestCase):
-    """Shared tests for ShellCommand and its subclasses.
-    """
+    """Shared tests for ShellCommand and its subclasses."""
 
     def setUp(self):
-        """Initialisation. Make sure the input and output options are
-        explicitly set to [] otherwise they hang around from previous
-        tests.
-        """
+        """Set up for test."""
+        # Make sure the input and output options are explicitly set to
+        # [] otherwise they hang around from previous tests.
         self.command = ShellCommand(input_options=[], output_options=[])
         self.expected_executable = ""
         self.expected_base_options = []
@@ -20,31 +18,26 @@ class ShellCommandSharedTestCase(unittest.TestCase):
         self.expected_output_options = []
 
     def tearDown(self):
-        """Cleanup.
-        """
+        """Clean up after test."""
         self.command = None
 
     def test_base_options(self):
-        """Test that base options match expected.
-        """
+        """Test that base options match expected."""
         self.assertEqual(
             self.command._base_options, self.expected_base_options)
     
     def test_input_options(self):
-        """Test that input options match expected.
-        """
+        """Test that input options match expected."""
         self.assertEqual(
             self.command.input_options, self.expected_input_options)
     
     def test_output_options(self):
-        """Test that output options match expected.
-        """
+        """Test that output options match expected."""
         self.assertEqual(
             self.command.output_options, self.expected_output_options)
     
     def test_executable_string(self):
-        """Test that executable path matches expected.
-        """
+        """Test that executable path matches expected."""
         with self.subTest(msg="unquoted"):
             self.assertEqual(self.command.executable_string(quote=False),
                 self.expected_executable)
@@ -55,8 +48,7 @@ class ShellCommandSharedTestCase(unittest.TestCase):
                 ShellCommand.shellquote(self.expected_executable))
 
     def test_argument_string(self):
-        """Test that the argument string matches expected.
-        """
+        """Test that argument string matches expected."""
         args = (self.expected_base_options + self.expected_input_options +
             self.expected_filter_options + self.expected_output_options)
         with self.subTest(msg="unquoted"):
@@ -67,15 +59,13 @@ class ShellCommandSharedTestCase(unittest.TestCase):
                 " ".join([ShellCommand.shellquote(a) for a in args]))
 
     def test_argument_list(self):
-        """Test that the argument list matches expected.
-        """
+        """Test that argument list matches expected."""
         self.assertEqual(self.command.argument_list(),
             self.expected_base_options + self.expected_input_options +
             self.expected_filter_options + self.expected_output_options)
 
     def test_command_string(self):
-        """Test that the command string matches expected.
-        """
+        """Test that command string matches expected."""
         args = (self.expected_base_options + self.expected_input_options +
             self.expected_filter_options + self.expected_output_options)
         expected_cmd_unquoted = (
