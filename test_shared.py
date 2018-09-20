@@ -16,6 +16,7 @@ class ShellCommandSharedTestCase(unittest.TestCase):
         self.expected_executable = ""
         self.expected_base_options = []
         self.expected_input_options = []
+        self.expected_filter_options = []
         self.expected_output_options = []
 
     def tearDown(self):
@@ -55,7 +56,7 @@ class ShellCommandSharedTestCase(unittest.TestCase):
         """Test that the argument string matches expected.
         """
         args = (self.expected_base_options + self.expected_input_options +
-            self.expected_output_options)
+            self.expected_filter_options + self.expected_output_options)
         self.assertEqual(self.command.argument_string(quote=False),
             " ".join(args))
         self.assertEqual(self.command.argument_string(quote=True),
@@ -66,13 +67,13 @@ class ShellCommandSharedTestCase(unittest.TestCase):
         """
         self.assertEqual(self.command.argument_list(),
             self.expected_base_options + self.expected_input_options +
-            self.expected_output_options)
+            self.expected_filter_options + self.expected_output_options)
 
     def test_command_string(self):
         """Test that the command string matches expected.
         """
         args = (self.expected_base_options + self.expected_input_options +
-            self.expected_output_options)
+            self.expected_filter_options + self.expected_output_options)
         expected_cmd_unquoted = (
             "{exe} {arg}".format(exe=self.expected_executable,
                 arg=" ".join(args))

@@ -26,6 +26,7 @@ class FFprobeCommandTestCase(ShellCommandSharedTestCase):
             "-print_format", "json",
         ]
         self.expected_input_options = ["-i", self.tmpfile.name]
+        self.expected_filter_options = []
         self.expected_output_options = []
 
     def tearDown(self):

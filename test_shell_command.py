@@ -17,6 +17,7 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
         self.expected_executable = ""
         self.expected_base_options = []
         self.expected_input_options = []
+        self.expected_filter_options = []
         self.expected_output_options = []
 
     def tearDown(self):

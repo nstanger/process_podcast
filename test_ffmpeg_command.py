@@ -21,6 +21,7 @@ class FFmpegCommandTestCase(ShellCommandSharedTestCase):
         self.expected_executable = shutil.which("ffmpeg")
         self.expected_base_options = ["-y", "-nostdin",]
         self.expected_input_options = ["-i", "in.mov"]
+        self.expected_filter_options = []
         self.expected_output_options = ["out.mov"]
 
     def tearDown(self):

@@ -30,6 +30,7 @@ class ConvertCommandTestCase(ShellCommandSharedTestCase):
             "-type", "truecolor",
             "-define", "colorspace:auto-grayscale=off",
         ]
+        self.expected_filter_options = []
         self.expected_output_options = [
             ")",
             "-gravity", "center",
