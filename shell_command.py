@@ -230,18 +230,20 @@ class FFmpegConcatCommand(FFmpegCommand):
     
     def append_concat_filter(self, type, segments=[]):
         """Append a concat filter to the filters list"""
-        if (len(segments) > 1):
-            self.append_filter(
-                "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
-                    inspecs=" ".join([s.output_stream_specifier()
-                                      for s in segments]),
-                    n=len(segments), v=int(type == "v"),
-                    a=int(type == "a"), t=type))
-        elif (len(segments) == 1):
-            self.append_filter(
-                "{inspec} {a}null [{t}conc]".format(
-                    inspec=segments[0].output_stream_specifier(),
-                    a=type if type == "a" else "", t=type))
+        # Ignore frame type.
+        if type in ["a", "v"]:
+            if (len(segments) > 1):
+                self.append_filter(
+                    "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
+                        inspecs=" ".join([s.output_stream_specifier()
+                                        for s in segments]),
+                        n=len(segments), v=int(type == "v"),
+                        a=int(type == "a"), t=type))
+            elif (len(segments) == 1):
+                self.append_filter(
+                    "{inspec} {a}null [{t}conc]".format(
+                        inspec=segments[0].output_stream_specifier(),
+                        a=type if type == "a" else "", t=type))
         
     def build_complex_filter(self):
         """Build the complete complex filter.
