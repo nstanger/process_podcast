@@ -28,132 +28,148 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
     def test_shellquote(self):
         """Test static method ShellCommand.shellquote().
         """
-        # None => None
-        self.assertIsNone(ShellCommand.shellquote(None))
-        # (empty string) => (empty string)
-        self.assertEqual(ShellCommand.shellquote(""), "")
-        # (blank) => " " (one or more)
-        self.assertEqual(ShellCommand.shellquote(" "), '" "')
-        self.assertEqual(ShellCommand.shellquote("     "), '"     "')
-        # foobar => foobar
-        self.assertEqual(ShellCommand.shellquote("foobar"), "foobar")
-        # foo bar => "foo bar"
-        self.assertEqual(ShellCommand.shellquote("foo bar"), '"foo bar"')
-        # "foobar" => '"foobar"'
-        self.assertEqual(ShellCommand.shellquote('"foobar"'), '\'"foobar"\'')
-        # 'foobar' => 'foobar'
-        self.assertEqual(ShellCommand.shellquote("'foobar'"), "'foobar'")
-        # foo 'bar' => "foo 'bar'"
-        self.assertEqual(
-            ShellCommand.shellquote("foo 'bar'"), '"foo \'bar\'"')
-        # foo"bar => 'foo"bar'
-        self.assertEqual(ShellCommand.shellquote('foo"bar'), '\'foo"bar\'')
-        # foo.bar => "foo.bar"
-        self.assertEqual(ShellCommand.shellquote("foo.bar"), '"foo.bar"')
-        # foo(bar) => "foo(bar)"
-        self.assertEqual(ShellCommand.shellquote("foo(bar)"), '"foo(bar)"')
-        # [foobar] => "[foobar]"
-        self.assertEqual(ShellCommand.shellquote("[foobar]"), '"[foobar]"')
-        # foo[bar => "foo[bar"
-        self.assertEqual(ShellCommand.shellquote("foo[bar"), '"foo[bar"')
-        # /foo/bar => /foo/bar
-        self.assertEqual(ShellCommand.shellquote("/foo/bar"), "/foo/bar")
-        # -f => -f
-        self.assertEqual(ShellCommand.shellquote("-f"), "-f")
-        # --foobar => --foobar
-        self.assertEqual(ShellCommand.shellquote("--foobar"), "--foobar")
-        # ( => \(
-        self.assertEqual(ShellCommand.shellquote("("), r"\(")
-        # ) => \)
-        self.assertEqual(ShellCommand.shellquote(")"), r"\)")
+        with self.subTest(msg="None ⇒ None"):
+            self.assertIsNone(ShellCommand.shellquote(None))
+        with self.subTest(msg='(empty string) ⇒ (empty string)'):
+            self.assertEqual(ShellCommand.shellquote(""), "")
+        with self.subTest(msg='␢ ⇒ " "'):
+            self.assertEqual(ShellCommand.shellquote(" "), '" "')
+        with self.subTest(msg='␢␢␢␢␢ ⇒ "     "'):
+            self.assertEqual(ShellCommand.shellquote("     "), '"     "')
+        with self.subTest(msg='foobar ⇒ foobar'):
+            self.assertEqual(ShellCommand.shellquote("foobar"), "foobar")
+        with self.subTest(msg='foo bar ⇒ "foo bar"'):
+            self.assertEqual(
+                ShellCommand.shellquote("foo bar"), '"foo bar"')
+        with self.subTest(msg='"foobar" ⇒ \'"foobar"\''):
+            self.assertEqual(
+                ShellCommand.shellquote('"foobar"'), '\'"foobar"\'')
+        with self.subTest(msg="'foobar' ⇒ 'foobar'"):
+            self.assertEqual(
+                ShellCommand.shellquote("'foobar'"), "'foobar'")
+        with self.subTest(msg="foo 'bar' ⇒ \"foo 'bar'\""):
+            self.assertEqual(
+                ShellCommand.shellquote("foo 'bar'"), '"foo \'bar\'"')
+        with self.subTest(msg='foo"bar ⇒ \'foo"bar\''):
+            self.assertEqual(
+                ShellCommand.shellquote('foo"bar'), '\'foo"bar\'')
+        with self.subTest(msg='foo.bar ⇒ "foo.bar"'):
+            self.assertEqual(ShellCommand.shellquote("foo.bar"), '"foo.bar"')
+        with self.subTest(msg='foo(bar) ⇒ "foo(bar)"'):
+            self.assertEqual(
+                ShellCommand.shellquote("foo(bar)"), '"foo(bar)"')
+        with self.subTest(msg='[foobar] ⇒ "[foobar]"'):
+            self.assertEqual(
+                ShellCommand.shellquote("[foobar]"), '"[foobar]"')
+        with self.subTest(msg='foo[bar ⇒ "foo[bar"'):
+            self.assertEqual(ShellCommand.shellquote("foo[bar"), '"foo[bar"')
+        with self.subTest(msg="/foo/bar ⇒ /foo/bar"):
+            self.assertEqual(ShellCommand.shellquote("/foo/bar"), "/foo/bar")
+        with self.subTest(msg="-f ⇒ -f"):
+            self.assertEqual(ShellCommand.shellquote("-f"), "-f")
+        with self.subTest(msg="-foobar ⇒ -foobar"):
+            self.assertEqual(ShellCommand.shellquote("--foobar"), "--foobar")
+        with self.subTest(msg=r"( ⇒ \("):
+            self.assertEqual(ShellCommand.shellquote("("), r"\(")
+        with self.subTest(msg=r") ⇒ \)"):
+            self.assertEqual(ShellCommand.shellquote(")"), r"\)")
         # ' => "'"
-        self.assertEqual(ShellCommand.shellquote("'"), '"\'"')
+        with self.subTest(msg='\' ⇒ "\'"'):
+            self.assertEqual(ShellCommand.shellquote("'"), '"\'"')
 
     def test_append_input_options(self):
         """Test method ShellCommand.append_input_options().
         """
-        # input_options should be [] initially
-        self.assertEqual(self.command.input_options, [])
-        # append [] => []
-        self.command.append_input_options([])
-        self.assertEqual(self.command.input_options, [])
-        # append ["foo"] => ["foo"]
-        self.command.append_input_options(["foo"])
-        self.assertEqual(self.command.input_options, ["foo"])
-        # append ["bar"] => ["foo", "bar"]
-        self.command.append_input_options(["bar"])
-        self.assertEqual(self.command.input_options, ["foo", "bar"])
-        # append ["baz", 42] => ["foo", "bar", "baz", 42]
-        self.command.append_input_options(["baz", 42])
-        self.assertEqual(
-            self.command.input_options, ["foo", "bar", "baz", 42])
+        with self.subTest(msg="should initially be []"):
+            self.assertEqual(self.command.input_options, [])
+        with self.subTest(msg="appending [] ⇒ []"):
+            self.command.append_input_options([])
+            self.assertEqual(self.command.input_options, [])
+        with self.subTest(msg='appending ["foo"] ⇒ ["foo"]'):
+            self.command.append_input_options(["foo"])
+            self.assertEqual(self.command.input_options, ["foo"])
+        with self.subTest(msg='appending ["bar"] ⇒ ["foo", "bar"]'):
+            self.command.append_input_options(["bar"])
+            self.assertEqual(self.command.input_options, ["foo", "bar"])
+        with self.subTest(
+                msg='appending ["baz", 42] ⇒ ["foo", "bar", "baz", 42]'):
+            self.command.append_input_options(["baz", 42])
+            self.assertEqual(
+                self.command.input_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_input_options(self):
         """Test method ShellCommand.prepend_input_options().
         """
-        # input_options should be [] initially
-        self.assertEqual(self.command.input_options, [])
-        # prepend [] => []
-        self.command.prepend_input_options([])
-        self.assertEqual(self.command.input_options, [])
-        # prepend ["foo"] => ["foo"]
-        self.command.prepend_input_options(["foo"])
-        self.assertEqual(self.command.input_options, ["foo"])
-        # prepend ["bar"] => ["bar", "foo"]
-        self.command.prepend_input_options(["bar"])
-        self.assertEqual(self.command.input_options, ["bar", "foo"])
-        # prepend ["baz", 42] => ["baz", 42, "bar", "foo"]
-        self.command.prepend_input_options(["baz", 42])
-        self.assertEqual(
-            self.command.input_options, ["baz", 42, "bar", "foo"])
+        with self.subTest(msg="should initially be []"):
+            self.assertEqual(self.command.input_options, [])
+        with self.subTest(msg="prepending [] ⇒ []"):
+            self.command.prepend_input_options([])
+            self.assertEqual(self.command.input_options, [])
+        with self.subTest(msg='prepending ["foo"] ⇒ ["foo"]'):
+            self.command.prepend_input_options(["foo"])
+            self.assertEqual(self.command.input_options, ["foo"])
+        with self.subTest(msg='prepending ["bar"] ⇒ ["bar", "foo"]'):
+            self.command.prepend_input_options(["bar"])
+            self.assertEqual(self.command.input_options, ["bar", "foo"])
+        with self.subTest(
+                msg='prepending ["baz", 42] ⇒ ["baz", 42, "bar", "foo]'):
+            self.command.prepend_input_options(["baz", 42])
+            self.assertEqual(
+                self.command.input_options, ["baz", 42, "bar", "foo"])
 
     def test_append_output_options(self):
         """Test method ShellCommand.append_output_options().
         """
-        # output_options should be [] initially
-        self.assertEqual(self.command.output_options, [])
-        # append [] => []
-        self.command.append_output_options([])
-        self.assertEqual(self.command.output_options, [])
-        # append ["foo"] => ["foo"]
-        self.command.append_output_options(["foo"])
-        self.assertEqual(self.command.output_options, ["foo"])
-        # append ["bar"] => ["foo", "bar"]
-        self.command.append_output_options(["bar"])
-        self.assertEqual(self.command.output_options, ["foo", "bar"])
-        # append ["baz", 42] => ["foo", "bar", "baz", 42]
-        self.command.append_output_options(["baz", 42])
-        self.assertEqual(
-            self.command.output_options, ["foo", "bar", "baz", 42])
+        with self.subTest(msg="should initially be []"):
+            self.assertEqual(self.command.output_options, [])
+        with self.subTest(msg="appending [] ⇒ []"):
+            self.command.append_output_options([])
+            self.assertEqual(self.command.output_options, [])
+        with self.subTest(msg='appending ["foo"] ⇒ ["foo"]'):
+            self.command.append_output_options(["foo"])
+            self.assertEqual(self.command.output_options, ["foo"])
+        with self.subTest(msg='appending ["bar"] ⇒ ["foo", "bar"]'):
+            self.command.append_output_options(["bar"])
+            self.assertEqual(self.command.output_options, ["foo", "bar"])
+        with self.subTest(
+                msg='appending ["baz", 42] ⇒ ["foo", "bar", "baz", 42]'):
+            self.command.append_output_options(["baz", 42])
+            self.assertEqual(
+                self.command.output_options, ["foo", "bar", "baz", 42])
 
     def test_prepend_output_options(self):
         """Test method ShellCommand.prepend_output_options.
         """
-        # output_options should be [] initially
-        self.assertEqual(self.command.output_options, [])
-        # prepend [] => []
-        self.command.prepend_output_options([])
-        self.assertEqual(self.command.output_options, [])
-        # prepend ["foo"] => ["foo"]
-        self.command.prepend_output_options(["foo"])
-        self.assertEqual(self.command.output_options, ["foo"])
-        # prepend ["bar"] => ["bar", "foo"]
-        self.command.prepend_output_options(["bar"])
-        self.assertEqual(self.command.output_options, ["bar", "foo"])
-        # prepend ["baz", 42] => ["baz", 42, "bar", "foo"]
-        self.command.prepend_output_options(["baz", 42])
-        self.assertEqual(
-            self.command.output_options, ["baz", 42, "bar", "foo"])
+        with self.subTest(msg="should initially be []"):
+            self.assertEqual(self.command.output_options, [])
+        with self.subTest(msg="prepending [] ⇒ []"):
+            self.command.prepend_output_options([])
+            self.assertEqual(self.command.output_options, [])
+        with self.subTest(msg='prepending ["foo"] ⇒ ["foo"]'):
+            self.command.prepend_output_options(["foo"])
+            self.assertEqual(self.command.output_options, ["foo"])
+        with self.subTest(msg='prepending ["bar"] ⇒ ["bar", "foo"]'):
+            self.command.prepend_output_options(["bar"])
+            self.assertEqual(self.command.output_options, ["bar", "foo"])
+        with self.subTest(
+                msg='prepending ["baz", 42] ⇒ ["baz", 42, "bar", "foo]'):
+            self.command.prepend_output_options(["baz", 42])
+            self.assertEqual(
+                self.command.output_options, ["baz", 42, "bar", "foo"])
 
     def test_process_pattern(self):
         """ Test method ShellCommand.process_pattern().
         """
         # True on EOF (0)
-        self.assertTrue(self.command.process_pattern(0))
+        with self.subTest(msg="returns True on EOF"):
+            self.assertTrue(self.command.process_pattern(0))
         # False on anythingthing else
-        self.assertFalse(self.command.process_pattern(1))
-        self.assertFalse(self.command.process_pattern(-1))
-        self.assertFalse(self.command.process_pattern(None))
+        with self.subTest(msg="returns False on 1"):
+            self.assertFalse(self.command.process_pattern(1))
+        with self.subTest(msg="returns False on -1"):
+            self.assertFalse(self.command.process_pattern(-1))
+        with self.subTest(msg="returns False on None"):
+            self.assertFalse(self.command.process_pattern(None))
 
     # The following two will require mocking of pexpect?
     def test_run(self):

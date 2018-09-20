@@ -45,22 +45,26 @@ class ShellCommandSharedTestCase(unittest.TestCase):
     def test_executable_string(self):
         """Test that executable path matches expected.
         """
-        self.assertEqual(self.command.executable_string(quote=False),
-            self.expected_executable)
-        # Note: don't explicitly specify quoted value, because
-        # the executable path will vary across different systems.
-        self.assertEqual(self.command.executable_string(quote=True),
-            ShellCommand.shellquote(self.expected_executable))
+        with self.subTest(msg="unquoted"):
+            self.assertEqual(self.command.executable_string(quote=False),
+                self.expected_executable)
+        with self.subTest(msg="quoted"):
+            # Note: don't explicitly specify quoted value, because
+            # the executable path will vary across different systems.
+            self.assertEqual(self.command.executable_string(quote=True),
+                ShellCommand.shellquote(self.expected_executable))
 
     def test_argument_string(self):
         """Test that the argument string matches expected.
         """
         args = (self.expected_base_options + self.expected_input_options +
             self.expected_filter_options + self.expected_output_options)
-        self.assertEqual(self.command.argument_string(quote=False),
-            " ".join(args))
-        self.assertEqual(self.command.argument_string(quote=True),
-            " ".join([ShellCommand.shellquote(a) for a in args]))
+        with self.subTest(msg="unquoted"):
+            self.assertEqual(self.command.argument_string(quote=False),
+                " ".join(args))
+        with self.subTest(msg="quoted"):
+            self.assertEqual(self.command.argument_string(quote=True),
+                " ".join([ShellCommand.shellquote(a) for a in args]))
 
     def test_argument_list(self):
         """Test that the argument list matches expected.
@@ -83,7 +87,9 @@ class ShellCommandSharedTestCase(unittest.TestCase):
                 exe=ShellCommand.shellquote(self.expected_executable),
                 arg=" ".join([ShellCommand.shellquote(a) for a in args]))
         )
-        self.assertEqual(self.command.command_string(quote=False),
-            expected_cmd_unquoted)
-        self.assertEqual(self.command.command_string(quote=True),
-            expected_cmd_quoted)
+        with self.subTest(msg="unquoted"):
+            self.assertEqual(self.command.command_string(quote=False),
+                expected_cmd_unquoted)
+        with self.subTest(msg="quoted"):
+            self.assertEqual(self.command.command_string(quote=True),
+                expected_cmd_quoted)
