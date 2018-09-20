@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import OrderedDict
+from datetime import timedelta
 import errno
 import itertools
 import logging
@@ -21,7 +22,7 @@ class Segment(object):
     point (both in seconds).
     """
     # Automatic segment number generator.
-    _new_segment_num = next(itertools.count())
+    _new_segment_num = itertools.count()
     
     # Keep track of input files in the order they're loaded, so that we
     # can easily reference them by index in the ffmpeg command (i.e.,
@@ -52,8 +53,9 @@ class Segment(object):
                 tmp[f] = Segment._input_files[f]
         Segment._input_files = tmp
     
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
-        self.segment_number = self.__class__._new_segment_num()
+    def __init__(self, file="", punch_in=timedelta(),
+                 punch_out=timedelta(), input_stream=0):
+        self.segment_number = next(self.__class__._new_segment_num)
         self.input_file = file
         self.punch_in = punch_in
         self.punch_out = punch_out
