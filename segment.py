@@ -159,7 +159,8 @@ class AudioSegment(Segment):
     _TRIM = "atrim"
     _SETPTS = "asetpts"
 
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
+    def __init__(self, file="", punch_in=timedelta(),
+                 punch_out=timedelta(), input_stream=0):
         super(AudioSegment, self).__init__(file, punch_in, punch_out,
                                            input_stream)
         self._temp_suffix = "wav"
@@ -173,7 +174,8 @@ class VideoSegment(Segment):
     _TRIM = "trim"
     _SETPTS = "setpts"
 
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0):
+    def __init__(self, file="", punch_in=timedelta(),
+                 punch_out=timedelta(), input_stream=0):
         super(VideoSegment, self).__init__(file, punch_in, punch_out,
                                            input_stream)
         self._output_options = ["-map", "{n}:v".format(n=self.input_stream)]
@@ -245,7 +247,8 @@ class FrameSegment(VideoSegment):
     """A video segment derived from a single still frame."""
     _TYPE = "frame"
     
-    def __init__(self, file="", punch_in=0, punch_out=0, input_stream=0,
+    def __init__(self, file="", punch_in=timedelta(),
+                 punch_out=timedelta(), input_stream=0,
                  frame_number=0):
         super(FrameSegment, self).__init__(file, punch_in, punch_out,
                                            input_stream)
