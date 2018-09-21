@@ -228,22 +228,23 @@ class FFmpegConcatCommand(FFmpegCommand):
         if (self.has_audio):
             self.append_filter("[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]")
     
-    def append_concat_filter(self, type, segments=[]):
+    def append_concat_filter(self, frame_type, segments=[]):
         """Append a concat filter to the filters list"""
         # Ignore frame type.
-        if type in ["a", "v"]:
+        if frame_type in ["a", "v"]:
             if (len(segments) > 1):
                 self.append_filter(
                     "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
                         inspecs=" ".join([s.output_stream_specifier()
                                         for s in segments]),
-                        n=len(segments), v=int(type == "v"),
-                        a=int(type == "a"), t=type))
+                        n=len(segments), v=int(frame_type == "v"),
+                        a=int(frame_type == "a"), t=frame_type))
             elif (len(segments) == 1):
                 self.append_filter(
                     "{inspec} {a}null [{t}conc]".format(
                         inspec=segments[0].output_stream_specifier(),
-                        a=type if type == "a" else "", t=type))
+                        a=frame_type if frame_type == "a" else "",
+                        t=frame_type))
         
     def build_complex_filter(self):
         """Build the complete complex filter.
