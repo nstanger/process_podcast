@@ -24,143 +24,105 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
 
     def test_shellquote(self):
         """Test shell quoting (static method)."""
-        with self.subTest(msg="None ⇒ None"):
-            self.assertIsNone(ShellCommand.shellquote(None))
-        with self.subTest(msg='(empty string) ⇒ (empty string)'):
-            self.assertEqual(ShellCommand.shellquote(""), "")
-        with self.subTest(msg='␢ ⇒ " "'):
-            self.assertEqual(ShellCommand.shellquote(" "), '" "')
-        with self.subTest(msg='␢␢␢␢␢ ⇒ "     "'):
-            self.assertEqual(ShellCommand.shellquote("     "), '"     "')
-        with self.subTest(msg='foobar ⇒ foobar'):
-            self.assertEqual(ShellCommand.shellquote("foobar"), "foobar")
-        with self.subTest(msg='foo bar ⇒ "foo bar"'):
-            self.assertEqual(
-                ShellCommand.shellquote("foo bar"), '"foo bar"')
-        with self.subTest(msg='"foobar" ⇒ \'"foobar"\''):
-            self.assertEqual(
-                ShellCommand.shellquote('"foobar"'), '\'"foobar"\'')
-        with self.subTest(msg="'foobar' ⇒ 'foobar'"):
-            self.assertEqual(
-                ShellCommand.shellquote("'foobar'"), "'foobar'")
-        with self.subTest(msg="foo 'bar' ⇒ \"foo 'bar'\""):
-            self.assertEqual(
-                ShellCommand.shellquote("foo 'bar'"), '"foo \'bar\'"')
-        with self.subTest(msg='foo"bar ⇒ \'foo"bar\''):
-            self.assertEqual(
-                ShellCommand.shellquote('foo"bar'), '\'foo"bar\'')
-        with self.subTest(msg='foo.bar ⇒ "foo.bar"'):
-            self.assertEqual(ShellCommand.shellquote("foo.bar"), '"foo.bar"')
-        with self.subTest(msg='foo(bar) ⇒ "foo(bar)"'):
-            self.assertEqual(
-                ShellCommand.shellquote("foo(bar)"), '"foo(bar)"')
-        with self.subTest(msg='[foobar] ⇒ "[foobar]"'):
-            self.assertEqual(
-                ShellCommand.shellquote("[foobar]"), '"[foobar]"')
-        with self.subTest(msg='foo[bar ⇒ "foo[bar"'):
-            self.assertEqual(ShellCommand.shellquote("foo[bar"), '"foo[bar"')
-        with self.subTest(msg="/foo/bar ⇒ /foo/bar"):
-            self.assertEqual(ShellCommand.shellquote("/foo/bar"), "/foo/bar")
-        with self.subTest(msg="-f ⇒ -f"):
-            self.assertEqual(ShellCommand.shellquote("-f"), "-f")
-        with self.subTest(msg="-foobar ⇒ -foobar"):
-            self.assertEqual(ShellCommand.shellquote("--foobar"), "--foobar")
-        with self.subTest(msg=r"( ⇒ \("):
-            self.assertEqual(ShellCommand.shellquote("("), r"\(")
-        with self.subTest(msg=r") ⇒ \)"):
-            self.assertEqual(ShellCommand.shellquote(")"), r"\)")
-        # ' => "'"
-        with self.subTest(msg='\' ⇒ "\'"'):
-            self.assertEqual(ShellCommand.shellquote("'"), '"\'"')
+        test_data = (
+            (None, None, "None ⇒ None"),
+            ("", "", "(empty string) ⇒ (empty string)"),
+            (" ", '" "', '␢ ⇒ " "'),
+            ("     ", '"     "', '␢␢␢␢␢ ⇒ "     "'),
+            ("foobar", "foobar", "foobar ⇒ foobar"),
+            ("foo bar", '"foo bar"', 'foo bar ⇒ "foo bar"'),
+            ('"foobar"', '\'"foobar"\'', '"foobar" ⇒ \'"foobar"\''),
+            ("'foobar'", "'foobar'", "'foobar' ⇒ 'foobar'"),
+            ("foo 'bar'", '"foo \'bar\'"', "foo 'bar' ⇒ \"foo 'bar'\""),
+            ('foo"bar', '\'foo"bar\'', 'foo"bar ⇒ \'foo"bar\''),
+            ("foo.bar", '"foo.bar"', 'foo.bar ⇒ "foo.bar"'),
+            ("foo(bar)", '"foo(bar)"', 'foo(bar) ⇒ "foo(bar)"'),
+            ("[foobar]", '"[foobar]"', '[foobar] ⇒ "[foobar]"'),
+            ("foo[bar", '"foo[bar"', 'foo[bar ⇒ "foo[bar"'),
+            ("/foo/bar", "/foo/bar", "/foo/bar ⇒ /foo/bar"),
+            ("-f", "-f", "-f ⇒ -f"),
+            ("--foobar", "--foobar", "--foobar ⇒ --foobar"),
+            ("(", r"\(", r"( ⇒ \("),
+            (")", r"\)", r"( ⇒ \)"),
+            ("'", '"\'"', '\' ⇒ "\'"'),
+        )
+        for original, expected, description in test_data:
+            with self.subTest(msg=description):
+                self.assertEqual(ShellCommand.shellquote(original), expected)
 
     def test_append_input_options(self):
         """Test appending to input options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.input_options, [])
-        with self.subTest(msg="appending [] ⇒ []"):
-            self.command.append_input_options([])
-            self.assertEqual(self.command.input_options, [])
-        with self.subTest(msg='appending ["foo"] ⇒ ["foo"]'):
-            self.command.append_input_options(["foo"])
-            self.assertEqual(self.command.input_options, ["foo"])
-        with self.subTest(msg='appending ["bar"] ⇒ ["foo", "bar"]'):
-            self.command.append_input_options(["bar"])
-            self.assertEqual(self.command.input_options, ["foo", "bar"])
-        with self.subTest(
-                msg='appending ["baz", 42] ⇒ ["foo", "bar", "baz", 42]'):
-            self.command.append_input_options(["baz", 42])
-            self.assertEqual(
-                self.command.input_options, ["foo", "bar", "baz", 42])
+        test_data = (
+            ([], [], "[] ⇒ []"),
+            (["foo"], ["foo"], '["foo"] ⇒ ["foo"]'),
+            (["bar"], ["foo", "bar"], '["bar"] ⇒ ["foo", "bar"]'),
+            (["baz", 42], ["foo", "bar", "baz", 42],
+             '["baz", 42] ⇒ ["foo", "bar", "baz", 42]'),
+        )
+        for appended, expected, description in test_data:
+            with self.subTest(msg="appending {}".format(description)):
+                self.command.append_input_options(appended)
+                self.assertEqual(self.command.input_options, expected)
 
     def test_prepend_input_options(self):
         """Test prepending to input options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.input_options, [])
-        with self.subTest(msg="prepending [] ⇒ []"):
-            self.command.prepend_input_options([])
-            self.assertEqual(self.command.input_options, [])
-        with self.subTest(msg='prepending ["foo"] ⇒ ["foo"]'):
-            self.command.prepend_input_options(["foo"])
-            self.assertEqual(self.command.input_options, ["foo"])
-        with self.subTest(msg='prepending ["bar"] ⇒ ["bar", "foo"]'):
-            self.command.prepend_input_options(["bar"])
-            self.assertEqual(self.command.input_options, ["bar", "foo"])
-        with self.subTest(
-                msg='prepending ["baz", 42] ⇒ ["baz", 42, "bar", "foo]'):
-            self.command.prepend_input_options(["baz", 42])
-            self.assertEqual(
-                self.command.input_options, ["baz", 42, "bar", "foo"])
+        test_data = (
+            ([], [], "[] ⇒ []"),
+            (["foo"], ["foo"], '["foo"] ⇒ ["foo"]'),
+            (["bar"], ["bar", "foo"], '["bar"] ⇒ ["bar", "foo"]'),
+            (["baz", 42], ["baz", 42, "bar", "foo"],
+             '["baz", 42] ⇒ ["baz", 42, "bar", "foo"]'),
+        )
+        for prepended, expected, description in test_data:
+            with self.subTest(msg="prepending {}".format(description)):
+                self.command.prepend_input_options(prepended)
+                self.assertEqual(self.command.input_options, expected)
 
     def test_append_output_options(self):
         """Test appending to output options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.output_options, [])
-        with self.subTest(msg="appending [] ⇒ []"):
-            self.command.append_output_options([])
-            self.assertEqual(self.command.output_options, [])
-        with self.subTest(msg='appending ["foo"] ⇒ ["foo"]'):
-            self.command.append_output_options(["foo"])
-            self.assertEqual(self.command.output_options, ["foo"])
-        with self.subTest(msg='appending ["bar"] ⇒ ["foo", "bar"]'):
-            self.command.append_output_options(["bar"])
-            self.assertEqual(self.command.output_options, ["foo", "bar"])
-        with self.subTest(
-                msg='appending ["baz", 42] ⇒ ["foo", "bar", "baz", 42]'):
-            self.command.append_output_options(["baz", 42])
-            self.assertEqual(
-                self.command.output_options, ["foo", "bar", "baz", 42])
+        test_data = (
+            ([], [], "[] ⇒ []"),
+            (["foo"], ["foo"], '["foo"] ⇒ ["foo"]'),
+            (["bar"], ["foo", "bar"], '["bar"] ⇒ ["foo", "bar"]'),
+            (["baz", 42], ["foo", "bar", "baz", 42],
+             '["baz", 42] ⇒ ["foo", "bar", "baz", 42]'),
+        )
+        for appended, expected, description in test_data:
+            with self.subTest(msg="appending {}".format(description)):
+                self.command.append_output_options(appended)
+                self.assertEqual(self.command.output_options, expected)
 
     def test_prepend_output_options(self):
         """Test prepending to output options."""
         with self.subTest(msg="should initially be []"):
             self.assertEqual(self.command.output_options, [])
-        with self.subTest(msg="prepending [] ⇒ []"):
-            self.command.prepend_output_options([])
-            self.assertEqual(self.command.output_options, [])
-        with self.subTest(msg='prepending ["foo"] ⇒ ["foo"]'):
-            self.command.prepend_output_options(["foo"])
-            self.assertEqual(self.command.output_options, ["foo"])
-        with self.subTest(msg='prepending ["bar"] ⇒ ["bar", "foo"]'):
-            self.command.prepend_output_options(["bar"])
-            self.assertEqual(self.command.output_options, ["bar", "foo"])
-        with self.subTest(
-                msg='prepending ["baz", 42] ⇒ ["baz", 42, "bar", "foo]'):
-            self.command.prepend_output_options(["baz", 42])
-            self.assertEqual(
-                self.command.output_options, ["baz", 42, "bar", "foo"])
+        test_data = (
+            ([], [], "[] ⇒ []"),
+            (["foo"], ["foo"], '["foo"] ⇒ ["foo"]'),
+            (["bar"], ["bar", "foo"], '["bar"] ⇒ ["bar", "foo"]'),
+            (["baz", 42], ["baz", 42, "bar", "foo"],
+             '["baz", 42] ⇒ ["baz", 42, "bar", "foo"]'),
+        )
+        for prepended, expected, description in test_data:
+            with self.subTest(msg="prepending {}".format(description)):
+                self.command.prepend_output_options(prepended)
+                self.assertEqual(self.command.output_options, expected)
 
     def test_process_pattern(self):
         """ Test pattern processing."""
         # True on EOF (0)
         with self.subTest(msg="returns True on EOF"):
             self.assertTrue(self.command.process_pattern(0))
-        # False on anythingthing else
-        with self.subTest(msg="returns False on 1"):
-            self.assertFalse(self.command.process_pattern(1))
-        with self.subTest(msg="returns False on -1"):
-            self.assertFalse(self.command.process_pattern(-1))
-        with self.subTest(msg="returns False on None"):
-            self.assertFalse(self.command.process_pattern(None))
+        # False on anything else
+        for i in (x for x in range(-1000, 1001) if x is not 0):
+            with self.subTest(msg="returns False on {}".format(i)):
+                self.assertFalse(self.command.process_pattern(i))
 
     # The following two will require mocking of pexpect?
     def test_run(self):

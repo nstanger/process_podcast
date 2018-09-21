@@ -1,10 +1,11 @@
-import shutil
+from datetime import timedelta
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from segment import Segment
+from segment import Segment, AudioSegment, FrameSegment, VideoSegment
 from shell_command import FFmpegConcatCommand
 from test_shared import ShellCommandSharedTestCase
 
@@ -40,16 +41,14 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
     
     def test_append_filter(self):
         """Test appending to the filter list."""
-        # append empty filter => no change
-        with self.subTest(msg="empty"):
-            filters = []
-            self.command.append_filter("")
-            self.assertEqual(self.command.filters, filters)
-        # append an actual filter
-        with self.subTest(msg="normal"):
-            filters = ["this_is_a_weird_filter"]
-            self.command.append_filter("this_is_a_weird_filter")
-            self.assertEqual(self.command.filters, filters)
+        test_data = (
+            ("", [], "append empty filter"),
+            ("normal_filter", ["normal_filter"], "append normal filter"),
+        )
+        for appended, expected, description in test_data:
+            with self.subTest(msg=description):
+                self.command.append_filter(appended)
+                self.assertEqual(self.command.filters, expected)
     
     def test_append_normalisation_filter(self):
         """Test appending a normalisation filter."""
@@ -57,24 +56,75 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
         self.command.append_normalisation_filter()
         self.assertEqual(self.command.filters, filters)
     
-    def test_append_concat_filter_0(self):
-        """Test appending a concat filter with no segments."""
-        self.command.append_concat_filter(type="a", segments=[])
-        with self.subTest(msg="audio"):
-            self.assertEqual(self.command.filters, [])
-        self.command.append_concat_filter(type="v", segments=[])
-        with self.subTest(msg="video"):
-            self.assertEqual(self.command.filters, [])
-        self.command.append_concat_filter(type="f", segments=[])
-        with self.subTest(msg="frame"):
-            self.assertEqual(self.command.filters, [])
+    def test_append_concat_filter(self):
+        """Test appending various concat filters."""
+        test_data = (
+            ("a", "audio"),
+            # ("v", "video"),
+            # ("f", "frame"),
+        )
+        for frame_type, description in test_data:
+            for num_segments in range(0, 3):
+                print("[{t}{n}]".format(t=frame_type, n=num_segments))
+                segments = None
+                if frame_type == "a":
+                    segments = num_segments * [AudioSegment(
+                        file="file.in", punch_in=timedelta(),
+                        punch_out=timedelta(20), input_stream=0)]
+                elif frame_type == "v":
+                    segments = num_segments * [VideoSegment(
+                        file="file.in", punch_in=timedelta(),
+                        punch_out=timedelta(20), input_stream=0)]
+                elif frame_type == "f":
+                    segments = num_segments * [FrameSegment(
+                        file="file.in", punch_in=timedelta(),
+                        punch_out=timedelta(20), input_stream=0,
+                        frame_number=1)]
+                else:
+                    raise TypeError
+                self.command.append_concat_filter(
+                    frame_type=frame_type, segments=segments)
+                if num_segments > 1:
+                    expected = [
+                        "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
+                            inspecs=" ".join([s.output_stream_specifier()
+                                            for s in segments]),
+                            n=num_segments, v=int(type == "v"),
+                            a=int(type == "a"), t=frame_type)
+                    ]
+                elif num_segments == 1:
+                    expected = [
+                        "{inspec} {a}null [{t}conc]".format(
+                            inspec=segments[0].output_stream_specifier(),
+                            a=frame_type if frame_type == "a" else "",
+                            t=frame_type)
+                    ]
+                else:
+                    expected = []
+                print("  expected: {}".format(expected))
+                print("  actual:   {}".format(self.command.filters))
+                with self.subTest(
+                        msg="{d}: {n}".format(d=description, n=num_segments)):
+                    self.assertEqual(self.command.filters, expected)
+
+    # def test_append_concat_filter_0(self):
+    #     """Test appending a concat filter with no segments."""
+    #     self.command.append_concat_filter(type="a", segments=[])
+    #     with self.subTest(msg="audio"):
+    #         self.assertEqual(self.command.filters, [])
+    #     self.command.append_concat_filter(type="v", segments=[])
+    #     with self.subTest(msg="video"):
+    #         self.assertEqual(self.command.filters, [])
+    #     self.command.append_concat_filter(type="f", segments=[])
+    #     with self.subTest(msg="frame"):
+    #         self.assertEqual(self.command.filters, [])
     
-    def test_append_concat_filter_f(self):
-        """Test appending a concat filter with a frame segment."""
-        self.command.append_concat_filter(type="f", segments=[Segment()])
-        self.assertEqual(
-            self.command.filters, [],
-            msg="frame segments should be ignored")
+    # def test_append_concat_filter_f(self):
+    #     """Test appending a concat filter with a frame segment."""
+    #     self.command.append_concat_filter(type="f", segments=[Segment()])
+    #     self.assertEqual(
+    #         self.command.filters, [],
+    #         msg="frame segments should be ignored")
     
     # def test_append_concat_filter_1_a(self):
     #     """Test appending a concat filter with 1 audio segment."""
