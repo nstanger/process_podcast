@@ -142,7 +142,7 @@ class ConvertCommand(ShellCommand):
                      "("]
     
     def __init__(self, input_options=[], output_options=[], width=2048, height=1536):
-        super(ConvertCommand, self).__init__(input_options, output_options)
+        super().__init__(input_options, output_options)
         self._base_options = (["-size", "{w}x{h}".format(w=width, h=height)] +
                               self._base_options)
         self.append_input_options(
@@ -165,7 +165,7 @@ class FFprobeCommand(ShellCommand):
                      "-print_format", "json"]
     
     def __init__(self, input_options=[], output_options=[]):
-        super(FFprobeCommand, self).__init__(input_options, output_options)
+        super().__init__(input_options, output_options)
         self.entries = None
         # The input file should be the last input option.
         assert(Path(self.input_options[-1]).exists())
@@ -195,8 +195,7 @@ class FFmpegConcatCommand(FFmpegCommand):
                  max_progress=100, has_audio=False, has_video=False,
                  process_audio=True, process_video=True,
                  audio_codec="pcm_s16le", video_codec="h264"):
-        super(FFmpegConcatCommand, self).__init__(
-            input_options, output_options)
+        super().__init__(input_options, output_options)
         self.progress = ProgressBar(max_value=max_progress, quiet=quiet)
         self.has_video = has_video
         self.process_video = process_video

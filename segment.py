@@ -161,8 +161,7 @@ class AudioSegment(Segment):
 
     def __init__(self, file="", punch_in=timedelta(),
                  punch_out=timedelta(), input_stream=0):
-        super(AudioSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
+        super().__init__(file, punch_in, punch_out, input_stream)
         self._temp_suffix = "wav"
         self._output_options = ["-ac", "1",
                                 "-map", "{n}:a".format(n=self.input_stream)]
@@ -176,8 +175,7 @@ class VideoSegment(Segment):
 
     def __init__(self, file="", punch_in=timedelta(),
                  punch_out=timedelta(), input_stream=0):
-        super(VideoSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
+        super().__init__(file, punch_in, punch_out, input_stream)
         self._output_options = ["-map", "{n}:v".format(n=self.input_stream)]
         self._temp_frame_file = ""
     
@@ -250,8 +248,7 @@ class FrameSegment(VideoSegment):
     def __init__(self, file="", punch_in=timedelta(),
                  punch_out=timedelta(), input_stream=0,
                  frame_number=0):
-        super(FrameSegment, self).__init__(file, punch_in, punch_out,
-                                           input_stream)
+        super().__init__(file, punch_in, punch_out, input_stream)
         self.frame_number = frame_number
         self._input_options = ["-loop", "1",
                                "-t", str(self.get_duration()),
