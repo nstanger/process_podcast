@@ -13,6 +13,8 @@ from test_shared import ShellCommandSharedTestCase
 class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
     """Test the FFmpegConcatCommand class."""
 
+    NORMALISATION_FILTER = "[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]"
+
     # What about testing different permutations of audio and video?
     def setUp(self):
         """Set up for test."""
@@ -52,7 +54,7 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
     
     def test_append_normalisation_filter(self):
         """Test appending a normalisation filter."""
-        filters = ["[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]"]
+        filters = [self.NORMALISATION_FILTER]
         self.command.append_normalisation_filter()
         self.assertEqual(self.command.filters, filters)
     
@@ -104,6 +106,23 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
                 with self.subTest(
                         msg="{d}: {n}".format(d=description, n=num_segments)):
                     self.assertEqual(self.command.filters, expected)
+
+    def test_build_complex_filter(self):
+        self.command.append_normalisation_filter()
+        self.assertEqual(
+            self.command.build_complex_filter(), self.NORMALISATION_FILTER)
+        test_data = (
+            ("", self.NORMALISATION_FILTER, "append empty filter"),
+            ("normal_filter",
+             "{n};normal_filter".format(n=self.NORMALISATION_FILTER),
+             "append normal filter"),
+        )
+        for appended, expected, description in test_data:
+            with self.subTest(msg=description):
+                self.command.append_filter(appended)
+                self.assertEqual(self.command.build_complex_filter(), expected)
+
+# process_pattern() updates the internal ProgressBar object.
 
 
 # Remove ShellCommandSharedTestCase from the namespace so we don't run
