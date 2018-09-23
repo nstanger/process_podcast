@@ -70,15 +70,15 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
                 if frame_type == "a":
                     segments = num_segments * [AudioSegment(
                         file="file.in", punch_in=timedelta(),
-                        punch_out=timedelta(20), input_stream=0)]
+                        punch_out=timedelta(seconds=20), input_stream=0)]
                 elif frame_type == "v":
                     segments = num_segments * [VideoSegment(
                         file="file.in", punch_in=timedelta(),
-                        punch_out=timedelta(20), input_stream=0)]
+                        punch_out=timedelta(seconds=20), input_stream=0)]
                 elif frame_type == "f":
                     segments = num_segments * [FrameSegment(
                         file="file.in", punch_in=timedelta(),
-                        punch_out=timedelta(20), input_stream=0,
+                        punch_out=timedelta(seconds=20), input_stream=0,
                         frame_number=1)]
                 else:
                     raise TypeError
