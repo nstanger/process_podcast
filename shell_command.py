@@ -229,7 +229,7 @@ class FFmpegConcatCommand(FFmpegCommand):
     
     def append_concat_filter(self, frame_type, segments=[]):
         """Append a concat filter to the filters list"""
-        # Ignore frame type.
+        # Ignore frame segments.
         if frame_type in ["a", "v"]:
             if (len(segments) > 1):
                 self.append_filter(
