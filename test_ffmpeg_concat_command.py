@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-from segment import Segment, AudioSegment, FrameSegment, VideoSegment
+from segment import Segment, AudioSegment, VideoSegment
 from shell_command import FFmpegConcatCommand
 from test_shared import ShellCommandSharedTestCase
 
@@ -60,12 +60,12 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
         """Test appending various concat filters."""
         test_data = (
             ("a", "audio"),
-            # ("v", "video"),
-            # ("f", "frame"),
+            ("v", "video"),
+            ("f", "frame (should be ignored)"),
         )
+        expected = []
         for frame_type, description in test_data:
             for num_segments in range(0, 3):
-                print("[{t}{n}]".format(t=frame_type, n=num_segments))
                 segments = None
                 if frame_type == "a":
                     segments = num_segments * [AudioSegment(
@@ -76,79 +76,34 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
                         file="file.in", punch_in=timedelta(),
                         punch_out=timedelta(seconds=20), input_stream=0)]
                 elif frame_type == "f":
-                    segments = num_segments * [FrameSegment(
-                        file="file.in", punch_in=timedelta(),
-                        punch_out=timedelta(seconds=20), input_stream=0,
-                        frame_number=1)]
+                    # Frame segments should be ignored by
+                    # append_concat_filter() regardless.
+                    segments = []
                 else:
                     raise TypeError
                 self.command.append_concat_filter(
                     frame_type=frame_type, segments=segments)
-                if num_segments > 1:
-                    expected = [
+                if frame_type not in ["a", "v"]:
+                    # Ignore frame segments.
+                    pass
+                elif num_segments > 1:
+                    expected.append(
                         "{inspecs} concat=n={n}:v={v}:a={a} [{t}conc]".format(
                             inspecs=" ".join([s.output_stream_specifier()
-                                            for s in segments]),
-                            n=num_segments, v=int(type == "v"),
-                            a=int(type == "a"), t=frame_type)
-                    ]
+                                              for s in segments]),
+                            n=num_segments, v=int(frame_type == "v"),
+                            a=int(frame_type == "a"), t=frame_type)
+                    )
                 elif num_segments == 1:
-                    expected = [
+                    expected.append(
                         "{inspec} {a}null [{t}conc]".format(
                             inspec=segments[0].output_stream_specifier(),
                             a=frame_type if frame_type == "a" else "",
                             t=frame_type)
-                    ]
-                else:
-                    expected = []
-                print("  expected: {}".format(expected))
-                print("  actual:   {}".format(self.command.filters))
+                    )
                 with self.subTest(
                         msg="{d}: {n}".format(d=description, n=num_segments)):
                     self.assertEqual(self.command.filters, expected)
-
-    # def test_append_concat_filter_0(self):
-    #     """Test appending a concat filter with no segments."""
-    #     self.command.append_concat_filter(type="a", segments=[])
-    #     with self.subTest(msg="audio"):
-    #         self.assertEqual(self.command.filters, [])
-    #     self.command.append_concat_filter(type="v", segments=[])
-    #     with self.subTest(msg="video"):
-    #         self.assertEqual(self.command.filters, [])
-    #     self.command.append_concat_filter(type="f", segments=[])
-    #     with self.subTest(msg="frame"):
-    #         self.assertEqual(self.command.filters, [])
-    
-    # def test_append_concat_filter_f(self):
-    #     """Test appending a concat filter with a frame segment."""
-    #     self.command.append_concat_filter(type="f", segments=[Segment()])
-    #     self.assertEqual(
-    #         self.command.filters, [],
-    #         msg="frame segments should be ignored")
-    
-    # def test_append_concat_filter_1_a(self):
-    #     """Test appending a concat filter with 1 audio segment."""
-    #     self.command.append_concat_filter(
-    #         type="a",
-    #         segments=[Segment(file="a.mov", punch_in=10,
-    #                   punch_out=20, input_stream=1)])
-    #     with self.subTest(msg="audio"):
-    #         self.assertEqual(self.command.filters, [])
-    
-    # def test_append_concat_filter_1_v(self):
-    #     """Test appending a concat filter with 1 video segment."""
-    #     concat = 
-    #     self.command.append_concat_filter(type="v",
-    #         segments=[Segment(file="v.mov", punch_in=10,
-    #             punch_out=20, input_stream=1)])
-    #     with self.subTest(msg="audio"):
-    #         self.assertEqual()
-    
-    # def test_append_concat_filter_2(self):
-    #     """Test appending a concat filter with >1 segment."""
-    
-    # def test_build_complex_filter(self):
-    #     """Test building the complex filter."""
 
 
 # Remove ShellCommandSharedTestCase from the namespace so we don't run
