@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from collections import OrderedDict
 from datetime import timedelta
 import errno
 import itertools
@@ -27,7 +26,7 @@ class Segment(object):
     # Keep track of input files in the order they're loaded, so that we
     # can easily reference them by index in the ffmpeg command (i.e.,
     # first input file is, 0, etc.).
-    _input_files = OrderedDict()
+    _input_files = {}
     
     # A string representing the type of the segment (e.g., "audio").
     # This is handy for generating temporary files and means that we
@@ -45,7 +44,7 @@ class Segment(object):
     
     @staticmethod
     def _rename_input_file(old, new):
-        tmp = OrderedDict()
+        tmp = {}
         for f in Segment._input_files:
             if (f == old):
                 tmp[new] = Segment._input_files[f]
@@ -132,8 +131,9 @@ class Segment(object):
     
     def input_stream_specifier(self):
         """Return the segment's ffmpeg stream input specifier."""
+        filenames = self.__class__._input_files.keys()
         return "[{n}:{t}]".format(
-            n=self.__class__._input_files.keys().index(self.input_file),
+            n=tuple(filenames).index(self.input_file),
             t=self._TYPE[0] if self._TYPE else "")
         
     def output_stream_specifier(self):
@@ -295,8 +295,9 @@ class FrameSegment(VideoSegment):
         
     def input_stream_specifier(self):
         """Return the segment's ffmpeg stream input specifier."""
+        filenames = self.__class__._input_files.keys()
         return "[{n}:v]".format(
-            n=self.__class__._input_files.keys().index(self.input_file))
+            n=tuple(filenames).index(self.input_file))
         
     def output_stream_specifier(self):
         """Return the segment's ffmpeg audio stream output specifier."""
