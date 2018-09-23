@@ -17,7 +17,7 @@ For help on the podcast configuration file format, see the [configuration file d
 
 ## Requirements
 
-* Python 2.7 series. (Not tested with Python 3.)
+* Python 3.7 or later.
 * The `pyparsing` module. Linux: `pip install pyparsing`, `easy_install pyparsing`,  or whatever other method you normally use to install Python modules; macOS (MacPorts): `port install py-parsing`. Also see the [pyparsing documentation][].
 * The `pexpect module`.  Linux: `pip install pexpect`, `easy_install pexpect`,  or whatever other method you normally use to install Python modules; macOS (MacPorts): `port install py-pexpect`. Also see the [pexpect documentation][].
 
