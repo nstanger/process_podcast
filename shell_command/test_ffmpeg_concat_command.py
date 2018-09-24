@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from segment import Segment, AudioSegment, VideoSegment
 from shell_command import FFmpegConcatCommand
-from test_shared import ShellCommandSharedTestCase
+from shell_command.shared_tests import ShellCommandSharedTestCase
 
 
 class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
