@@ -10,11 +10,14 @@ from pyparsing import ParseResults
 
 import globals
 from config_parser import (
-    parse_configuration_file, parse_configuration_string)
-from progress_bar import (ProgressBar)
-from segment import (Segment, AudioSegment, VideoSegment,
-                     FrameSegment, SegmentError)
-from shell_command import (FFprobeCommand, FFmpegConcatCommand)
+    parse_configuration_file, parse_configuration_string
+)
+from progress_bar import ProgressBar
+from segment import (
+    Segment, AudioSegment, VideoSegment,
+    FrameSegment, SegmentError
+)
+from shell_command import FFprobeCommand, FFmpegConcatCommand
 
 
 class InputStreamAction(argparse.Action):
