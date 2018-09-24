@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from shell_command import FFmpegCommand
-from shell_command.shared_tests import ShellCommandSharedTestCase
+from shell_command.tests.shared_tests import ShellCommandSharedTestCase
 
 
 class FFmpegCommandTestCase(ShellCommandSharedTestCase):
