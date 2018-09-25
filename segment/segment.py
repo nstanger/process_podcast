@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from datetime import timedelta
 import errno
 import itertools
@@ -306,7 +304,3 @@ class FrameSegment(VideoSegment):
     def trim_filter(self):
         """Return an FFMPEG trim filter for this segment."""
         return ""
-
-
-if (__name__ == "__main__"):
-    pass

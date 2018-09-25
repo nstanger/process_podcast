@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import time
 
@@ -44,11 +42,3 @@ class ProgressBar(object):
                 nl=self.newline)
             sys.stdout.write(bar)
             sys.stdout.flush()
-
-
-if __name__ == "__main__":
-    p = ProgressBar()
-    for i in range(0, 100):
-        p.update(value=i)
-        time.sleep(0.05)
-    p.finish()
