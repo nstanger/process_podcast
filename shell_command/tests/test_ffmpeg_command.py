@@ -22,10 +22,6 @@ class FFmpegCommandTestCase(ShellCommandSharedTestCase):
         self.expected_filter_options = []
         self.expected_output_options = ["out.mov"]
 
-    def tearDown(self):
-        """Clean up after test."""
-        self.command = None
-    
 
 # Remove ShellCommandSharedTestCase from the namespace so we don't run
 # the shared tests twice. See <https://stackoverflow.com/a/22836015>.

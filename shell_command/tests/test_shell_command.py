@@ -7,21 +7,6 @@ from shell_command.tests import ShellCommandSharedTestCase
 class ShellCommandTestCase(ShellCommandSharedTestCase):
     """Test the ShellCommand class."""
 
-    def setUp(self):
-        """Set up for test."""
-        # Make sure the input and output options are explicitly set to
-        # [] otherwise they hang around from previous tests.
-        self.command = ShellCommand(input_options=[], output_options=[])
-        self.expected_executable = ""
-        self.expected_base_options = []
-        self.expected_input_options = []
-        self.expected_filter_options = []
-        self.expected_output_options = []
-
-    def tearDown(self):
-        """Clean up after test."""
-        self.command = None
-
     def test_shellquote(self):
         """Test shell quoting (static method)."""
         test_data = (
@@ -114,6 +99,9 @@ class ShellCommandTestCase(ShellCommandSharedTestCase):
                 self.command.prepend_output_options(prepended)
                 self.assertEqual(self.command.output_options, expected)
 
+    # This test should really be shared (i.e., in __init__.py),
+    # but we can't do that until we figure out how to properly test
+    # FFmpegConcatCommand.process_pattern().
     def test_process_pattern(self):
         """ Test pattern processing."""
         # True on EOF (0)

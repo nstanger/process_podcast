@@ -38,10 +38,6 @@ class ConvertCommandTestCase(ShellCommandSharedTestCase):
             "out.png",
         ]
 
-    def tearDown(self):
-        """Clean up after test."""
-        self.command = None
-    
 
 # Remove ShellCommandSharedTestCase from the namespace so we don't run
 # the shared tests twice. See <https://stackoverflow.com/a/22836015>.

@@ -31,7 +31,7 @@ class FFprobeCommandTestCase(ShellCommandSharedTestCase):
     def tearDown(self):
         """Clean up after test."""
         self.tmpfile.close()
-        self.command = None
+        super().tearDown()
     
     def test_last_modified(self):
         """Test that last modified time of temp file matches."""

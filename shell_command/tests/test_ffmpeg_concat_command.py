@@ -37,10 +37,6 @@ class FFmpegConcatCommandTestCase(ShellCommandSharedTestCase):
             "out.mov"
         ]
 
-    def tearDown(self):
-        """Clean up after test."""
-        self.command = None
-    
     def test_append_filter(self):
         """Test appending to the filter list."""
         test_data = (
