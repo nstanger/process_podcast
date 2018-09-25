@@ -26,7 +26,9 @@ class VideoSegmentTestCase(SegmentSharedTestCase):
     def test_init(self):
         """Test segment initialises correctly."""
         super().test_init()
-        self.assertEqual(self.segment._temp_frame_file, "")
+        self.assertEqual(
+            self.segment._temp_frame_file, "",
+            msg="temp frame file = ")
     
     # Tricky to test get_last_frame_number() and generate_frame()
     # because they use pexpect.
