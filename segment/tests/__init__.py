@@ -84,49 +84,7 @@ class SegmentSharedTestCase(unittest.TestCase):
         self.assertEqual(
             self.segment._output_options, self.expected_output_options)
 
-    def test_segment_number_increment(self):
-        """Test that the segment number increments correctly."""
-        segment_1, segment_2 = Segment(), Segment()
-        self.assertEqual(
-            segment_1.segment_number + 1, segment_2.segment_number)
-    
-    def test_get_duration(self):
-        """Test duration calculation."""
-        self.assertEqual(self.segment.get_duration(), self.EXPECTED_DURATION)
-    
-    def test_generate_temp_filename(self):
-        """Test generating temporary filename."""
-        test_data = (
-            (None, "default suffix"),
-            (".bar", "specified suffix (.bar)"),
-        )
-        for suffix, description in test_data:
-            expected_path = Path("temp_{t}_{o}_{n:03d}".format(
-                t=self.segment._TYPE, o=Path("file.out").stem,
-                n=self.segment.segment_number)).with_suffix(
-                    suffix if suffix is not None
-                           else self.segment._temp_suffix)
-            with self.subTest(msg=description):
-                self.assertEqual(self.segment.generate_temp_filename(
-                                     "file.out", suffix=suffix),
-                                 expected_path)
-    
     # Testing generate_temp_file() is messy because of pexpect.
-
-    def test_temp_file(self):
-        """Test that temporary filename is correct."""
-        self.assertEqual(
-            self.segment.temp_file(), "", msg="temp file initially empty")
-        self.segment._temp_file = self.segment.generate_temp_filename(
-            "file.out", ".bar")
-        expected_path = Path("temp_{t}_{o}_{n:03d}".format(
-            t=self.segment._TYPE, o=Path("file.out").stem,
-            n=self.segment.segment_number)).with_suffix(".bar")
-        self.assertEqual(
-            self.segment.temp_file(), expected_path,
-            msg="specified temp file is correct")
-    
-    # Testing delete_temp_files() requires actual files to be created.
 
     def test_input_stream_specifier(self):
         """Test that input stream specifier is correctly generated."""
