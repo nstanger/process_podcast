@@ -2,7 +2,7 @@ import shutil
 import unittest
 
 from shell_command import ConvertCommand
-from shell_command.tests.shared_tests import ShellCommandSharedTestCase
+from shell_command.tests import ShellCommandSharedTestCase
 
 
 class ConvertCommandTestCase(ShellCommandSharedTestCase):

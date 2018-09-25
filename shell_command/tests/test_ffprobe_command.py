@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from shell_command import FFprobeCommand
-from shell_command.tests.shared_tests import ShellCommandSharedTestCase
+from shell_command.tests import ShellCommandSharedTestCase
 
 
 class FFprobeCommandTestCase(ShellCommandSharedTestCase):
