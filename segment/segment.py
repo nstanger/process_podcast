@@ -60,7 +60,7 @@ class Segment(object):
         self.punch_out = punch_out
         self.input_stream = input_stream
         self._temp_file = ""
-        self._temp_suffix = "mov"
+        self._temp_suffix = ".mov"
         # List of temporary files to delete when cleaning up.
         self._temp_files_list = []
         
@@ -162,7 +162,7 @@ class AudioSegment(Segment):
     def __init__(self, file="", punch_in=timedelta(),
                  punch_out=timedelta(), input_stream=0):
         super().__init__(file, punch_in, punch_out, input_stream)
-        self._temp_suffix = "wav"
+        self._temp_suffix = ".wav"
         self._output_options = ["-ac", "1",
                                 "-map", "{n}:a".format(n=self.input_stream)]
     
@@ -219,7 +219,7 @@ class VideoSegment(Segment):
         # segments. This will need to change if there are multiple
         # video inputs of different dimensions.
         fn = "generate_frame"
-        temp_frame = self.generate_temp_filename(output, suffix="jpg")
+        temp_frame = self.generate_temp_filename(output, suffix=".jpg")
         if (frame_number == -1):
             frame_number = self.get_last_frame_number()
         command = FFmpegCommand(
@@ -268,7 +268,7 @@ class FrameSegment(VideoSegment):
     def generate_temp_file(self, output, width=2048, height=1536):
         """Compile the segment from the original source file(s)."""
         fn = "generate_temp_file"
-        self._temp_file = self.generate_temp_filename(output, suffix="jpg")
+        self._temp_file = self.generate_temp_filename(output, suffix=".jpg")
         command = ConvertCommand(
             input_options=["{f}[{n}]".format(
                 f=self.input_file, n=self.frame_number)],
