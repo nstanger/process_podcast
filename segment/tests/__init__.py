@@ -2,7 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 import unittest
 
-from segment import Segment, SegmentError
+from segment import Segment
 
 
 class SegmentSharedTestCase(unittest.TestCase):
@@ -41,15 +41,6 @@ class SegmentSharedTestCase(unittest.TestCase):
     def tearDown(self):
         """Clean up after test."""
         self.segment = None
-
-    def test_input_files(self):
-        """Test list of input files (static method)."""
-        self.assertEqual(Segment.input_files(), self.EXPECTED_FILE_LIST)
-
-    def test_rename_input_file(self):
-        """Test input file renaming (static method)."""
-        Segment._rename_input_file(self.EXPECTED_INPUT_FILE, "file.new")
-        self.assertEqual(Segment.input_files(), {"file.new": None})
 
     def test_init(self):
         """Test segment initialises correctly."""
