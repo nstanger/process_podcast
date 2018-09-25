@@ -144,12 +144,12 @@ class Segment(object):
     def trim_filter(self):
         """Return an FFMPEG trim filter for this segment."""
         return ("{inspec} "
-                "{trim}=start={pi}:duration={po},{setpts}=PTS-STARTPTS "
+                "{trim}=start={pi}:duration={d},{setpts}=PTS-STARTPTS "
                 "{outspec}".format(
                     inspec=self.input_stream_specifier(),
                     trim=self._TRIM, setpts=self._SETPTS,
                     pi=self.punch_in.total_seconds(),
-                    po=self.get_duration(),
+                    d=self.get_duration(),
                     outspec=self.output_stream_specifier()))
 
 
