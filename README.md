@@ -14,7 +14,6 @@ For help on command line options: `process_podcast.py --help`.
 
 For help on the podcast configuration file format, see the [configuration file documentation][].
 
-
 ## Requirements
 
 * Python 3.7 or later.
@@ -24,3 +23,7 @@ For help on the podcast configuration file format, see the [configuration file d
 [pyparsing documentation]: http://pyparsing.wikispaces.com/ "pyparsing documentation"
 [pexpect documentation]: https://pexpect.readthedocs.io/en/stable/ "pexpect documentation"
 [configuration file documentation]: config_help.md "configuration file documentation"
+
+## Testing
+
+Run `python -m unittest` at the root level of the project to run all unit tests.
