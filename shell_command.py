@@ -226,7 +226,7 @@ class FFmpegConcatCommand(FFmpegCommand):
     def append_normalisation_filter(self):
         """Append a normalisation audio filter to the complex filter."""
         if (self.has_audio):
-            self.append_filter("[aconc] dynaudnorm=r=0.25:f=10:b=y [anorm]")
+            self.append_filter("[aconc] dynaudnorm=r=0.25:f=10:b=1 [anorm]")
     
     def append_concat_filter(self, type, segments=[]):
         """Append a concat filter to the filters list"""
