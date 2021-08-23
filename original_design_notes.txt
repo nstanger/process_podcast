@@ -1,0 +1,213 @@
+ffmpeg -y -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -i scene14.mov -i scene15.mov -filter_complex '[0:a] dynaudnorm=r=0.25:f=10:b=y [a0]; [1:a] dynaudnorm=r=0.25:f=10:b=y [a1]; [2:a] dynaudnorm=r=0.25:f=10:b=y [a2]; [3:a] dynaudnorm=r=0.25:f=10:b=y [a3]; [4:a] dynaudnorm=r=0.25:f=10:b=y [a4]; [5:a] dynaudnorm=r=0.25:f=10:b=y [a5]; [6:a] dynaudnorm=r=0.25:f=10:b=y [a6]; [7:a] dynaudnorm=r=0.25:f=10:b=y [a7]; [8:a] dynaudnorm=r=0.25:f=10:b=y [a8]; [9:a] dynaudnorm=r=0.25:f=10:b=y [a9]; [10:a] dynaudnorm=r=0.25:f=10:b=y [a10]; [11:a] dynaudnorm=r=0.25:f=10:b=y [a11]; [12:a] dynaudnorm=r=0.25:f=10:b=y [a12]; [13:a] dynaudnorm=r=0.25:f=10:b=y [a13]; [14:a] dynaudnorm=r=0.25:f=10:b=y [a14]; [0:v] [a0] [1:v] [a1] [2:v] [a2] [3:v] [a3] [4:v] [a4] [5:v] [a5] [6:v] [a6] [7:v] [a7] [8:v] [a8] [9:v] [a9] [10:v] [a10] [11:v] [a11] [12:v] [a12] [13:v] [a13] [14:v] [a14] concat=n=15:v=1:a=1 [v] [a]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[v]' -map '[a]' INFO321_2016-07-29.mov
+
+ffmpeg -y -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -filter_complex '[0:v] [1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] concat=n=13:v=1 [v]' -codec:v h264 -pix_fmt yuv420p -map '[v]' test.mov
+
+
+ffmpeg -y -i 20160729_105610.wav -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -i scene14.mov -i scene15.mov -filter_complex '[1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] [13:v] concat=n=13:v=1:a=0 [v1]; [0:a] atrim=start=479:duration=1131 [a1]; [v1] [a1] [14:v] [14:a] [15:v] [15:a] dynaudnorm=r=0.25:f=10:b=y,concat=n=6:v=1:a=1 [v] [a]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[v]' -map '[a]' test.mov
+
+
+The secret to trimming is the (a)setpts filter, set it to PTS - STARTPTS
+
+ffmpeg -y -i 20160729_105610.wav -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -filter_complex '[0:a] atrim=start=479:duration=1131,asetpts=PTS-STARTPTS,dynaudnorm=r=0.25:f=10:b=y [a1]; [1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] [13:v] concat=n=13:v=1:a=0 [v1]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[v1]' -map '[a1]' test.mov
+
+
+Works:
+
+ffmpeg -y -i 20160729_105610.wav -filter_complex '[0:a] atrim=start=479:duration=1131,dynaudnorm=r=0.25:f=10:b=y [a]' -c pcm_s16le -ac 1 -map '[a]' test.wav
+
+
+Works (filter audio segments independently, concatenate frame-based video segments, concatenate all video and audio):
+
+ffmpeg -y -i 20160729_105610.wav -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -i scene14.mov -i scene15.mov -filter_complex '[0:a] atrim=start=479:duration=1131,asetpts=PTS-STARTPTS,dynaudnorm=r=0.25:f=10:b=y [a1]; [14:a] dynaudnorm=r=0.25:f=10:b=y [a2]; [15:a] dynaudnorm=r=0.25:f=10:b=y [a3]; [1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] [13:v] concat=n=13 [v1]; [v1] [a1] [14:v] [a2] [15:v] [a3] concat=n=3:v=1:a=1 [v] [a]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[v]' -map '[a]' test01.mov
+
+
+Works (concatenate all audio segments, filter audio, concatenate all video segments).
+
+• Generate video segments v1, …, vn from original source (either JPEG frames or source .mov).
+• Generate joiner video segments vk, …, vl.
+• Get total duration of each run of non-joiner video segments (m runs).
+• Split original source audio into segments corresponding to runs of non-joiners -> a1, …, am.
+• Concatenate v* in correct sequence -> [vout].
+• Concatenate a* in correct sequence -> [aconcat].
+• Normalise [aconcat] -> [aout].
+• Encode [vout] and [aout] to final.
+
+
+ffmpeg -y -i 20160729_105610.wav -i scene01.mov -i scene02.mov -i scene03.mov -i scene04.mov -i scene05.mov -i scene06.mov -i scene07.mov -i scene08.mov -i scene09.mov -i scene10.mov -i scene11.mov -i scene12.mov -i scene13.mov -i scene14.mov -i scene15.mov -filter_complex '[0:a] atrim=start=479:duration=1131,asetpts=PTS-STARTPTS [a1]; [a1] [14:a] [15:a] concat=n=3:v=0:a=1 [aconcat]; [aconcat] dynaudnorm=r=0.25:f=10:b=y [aout]; [1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] [13:v] [14:v] [15:v] concat=n=15 [vout]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[vout]' -map '[aout]' test02.mov
+
+File format? (video splits):
+[f:slide-000.jpg] 00:07:59.000 00:08:46.000
+[f:slide-001.jpg] 00:08:46.000 00:10:28.000
+[f:slide-002.jpg] 00:10:28.000 00:12:19.000
+[f:slide-003.jpg] 00:12:19.000 00:13:53.000
+[f:slide-004.jpg] 00:13:53.000 00:14:26.000
+[f:slide-005.jpg] 00:14:26.000 00:16:22.000
+[f:slide-006.jpg] 00:16:22.000 00:20:16.000
+[f:slide-007.jpg] 00:20:16.000 00:20:50.000
+[f:slide-008.jpg] 00:20:50.000 00:22:32.000
+[f:slide-009.jpg] 00:22:32.000 00:22:49.000
+[f:slide-010.jpg] 00:22:49.000 00:25:59.000
+[f:slide-011.jpg] 00:25:59.000 00:26:25.000
+[f:slide-012.jpg] 00:26:25.000 00:26:50.000
+[f:slide-012.jpg] 00:00:00.000 00:00:05.000
+[f:slide-013.jpg] 00:53:00.000 00:53:27.000
+
+File format? (audio splits):
+[20160729_105610.wav] 00:07:59.000 00:25:50.000
+[joiner.wav] 00:00:00.000 00:00:05.000
+[20160729_105610.wav] 00:53:00.000 00:53:27.000
+
+Simple example:
+[a:20160729_105610.wav]
+00:07:59.000 00:25:50.000
+[a:joiner.wav]
+[a:20160729_105610.wav]
+00:53:00.000 00:53:27.000
+
+[v:input.mov]
+00:07:59.000 00:25:50.000
+[f:^:last]@joiner.wav
+[v:input.mov]
+00:53:00.000 00:53:27.000
+
+
+
+ignore empty lines and comments (#)
+ignore leading whitespace
+list segments in order of processing (no out-of-order segments!)
+number of segments across different types doesn't have to be the same (but it's simpler if they are); do the total durations for each type need to be the same? (ffmpeg can truncate to the shortest input, can it pad to the longest?)
+
+inputspecs are of the form [type:filename:num]
+    type is mandatory, filename and num are optional, so:
+        [type] (e.g., [video])
+        [type:filename] (e.g., [audio:foo.wav])
+        [type:filename:num] (e.g., [frame:foo.pdf:10])
+        [type::num] (uses default input from -v, -a, -f, e.g., [video::1])
+    filename:
+        can be a relative (prepended with --prefix) or absolute path
+        could be a printf style pattern? (e.g., slide-%03d.jpg, like ImageMagick)
+        could be - for stdin?
+    [a,v]:
+        num is ffmpeg stream number (0-indexed) to allow for inputs with multiple streams
+    [f]
+        filename = "^" means use previous segment (invalid for input formats that don't have frames, e.g., audio, .mkv; ffprobe will return "N/A" for nb_frames)
+        num is 0-indexed frame number to use from the input
+        num -1 or "last" means use last frame of input
+        e.g., [f:foo.pdf:last], [f:^:-1]
+ 
+[video] / [v]
+    read from the default video input (from --video / -v)
+[audio] / [a]
+    read from the default audio input (from --audio / -a)
+[frame] / [f]
+    read from the default frame input (from --frame / -f)
+
+[video:filename]
+    read from video input filename
+    normal input is anything with a video stream (.mp4, .mkv, .mov, .ogv, ...)
+[audio:filename]
+    read from audio input filename
+    normal input is anything with an audio stream (.mp3, .aif, .wav, ...)
+[frame:filename]
+    read from frame input filename
+    normal input is anything that can be split into frames (.mp4, .pdf, ...)
+
+each inputspec is followed by zero or more whitespace-delimited timespecs (line breaks OK)
+timepecs are:
+    a timestamp in the format HH:MM:SS.sss (can skip leading and trailing zeros)
+    @filename means use the duration D of the file filename
+        @filename should either be the only timespec (implying punch in at 0, punch out at D), or preceded by exactly one timestamp timespec T (implying punch in at T, punch out at T + D); anything other than that doesn't make sense
+    [a,v]:
+        none => [punch in at 0], [punch out at end]
+        odd number => punch in, out, in, ..., in, [punch out at end]
+        even number => punch in, out, in, ..., in, out
+        each pair of timespecs defines a new segment
+        if we support input filename patterns, then each pair of timespecs applies to the next filename iteration?
+    [f]:
+        none => duration = 0 (warning)
+        one => duration is 0 .. t
+        two => duration t1 .. t2
+        >1 => use the nth time as the duration of the nth frame (really only makes sense if no frame number specified)
+        if we support filename patterns, then timespec is the duration of the next filename iteration?
+
+config                  ::= streamspec, {streamspec} ;
+streamspec              ::= inputspec, [timespec_list] ;
+
+inputspec               ::= "[", (audio_or_video_input | frame_input), "]" ;
+
+audio_or_video_input    ::= audio_input | video_input ;
+
+audio_input             ::= audio_type, [input_file, [stream_number]] ;
+audio_type              ::= "audio" | "a" ;
+
+video_input             ::= video_type, [input_file, [stream_number]] ;
+video_type              ::= "video" | "v" ;
+
+frame_input             ::= frame_type, [frame_input_file, [frame_number]] ;
+frame_type              ::= "frame" | "f" ;
+frame_input_file        ::= input_file | previous_segment ;
+previous_segment        ::= ":", "^" ;
+
+input_file              ::= empty_file | named_file ;
+empty_file              ::= ":" ;
+named_file              ::= ":" filename ;
+
+stream_number           ::= ":", zero_index ;
+frame_number            ::= ":", (zero_index | last_frame) ;
+last_frame              ::=  "-1" | "last" ;
+
+timespec_list           ::= timestamp, (duration_file | {timestamp}) ;
+
+duration_file           ::= "@", filename ;
+
+timestamp               ::= hours, ":", minutes, ":", seconds, [second_fraction] ;
+hours                   ::= zero_index ;
+minutes                 ::= zero_index ;
+seconds                 ::= zero_index ;
+second_fraction         ::= ".", zero_index ;
+
+filename                ::= ...
+
+zero_index              ::= digit, {digit} ;
+digit                   ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+[a] [a:] [a::0] [a:file] [a:file:0]
+[v] [v:] [v::0] [v:file] [v:file:0]
+[f] [f:] [f::0] [f::-1] [f::last] [f:file] [f:file:0] [f:file:-1] [f:file:last] [f:^:0] [f:^:-1] [f:^:last]
+
+
+To read the time:
+    datetime.time(*[int(v) for v in re.split(r"[:.]", "0:8:47.230000")])
+or more readably:
+    (hh, mm, ss, ms) = re.split(r"[:.]", "0:8:47.230000")
+    datetime.time(hh, mm, ss, ms)
+or even better
+    (hh, mm, ss, ms) = re.split(r"[:.]", "0:8:46.230")
+    t1 = datetime.timedelta(hours=hh, minutes=mm, seconds=ss, milliseconds=ms)
+    (hh, mm, ss, ms) = re.split(r"[:.]", "0:10:28.560")
+    t2 = datetime.timedelta(hours=hh, minutes=mm, seconds=ss, milliseconds=ms)
+    duration = t2 - t1
+    
+
+
+Yeah, baby, yeah!
+(do frame loops, filtering, and concatenation, all in one command)
+Note JPEG is faster all round than PNG — go figure.
+
+convert -scale 2048x1536 -density 600 Lectorial_slides.pdf slide-%03d.jpg
+
+ffmpeg -y -i 20160729_105610.wav -loop 1 -t 47 -i slide-000.jpg -loop 1 -t 1:42 -i slide-001.jpg -loop 1 -t 1:51 -i slide-002.jpg -loop 1 -t 1:34 -i slide-003.jpg -loop 1 -t 33 -i slide-004.jpg -loop 1 -t 1:56 -i slide-005.jpg -loop 1 -t 3:54 -i slide-006.jpg -loop 1 -t 34 -i slide-007.jpg -loop 1 -t 1:42 -i slide-008.jpg -loop 1 -t 17 -i slide-009.jpg -loop 1 -t 3:11 -i slide-010.jpg -loop 1 -t 26 -i slide-011.jpg -loop 1 -t 25 -i slide-012.jpg -loop 1 -t 5 -i slide-012.jpg -loop 1 -t 27 -i slide-013.jpg -i joiner.wav -filter_complex '[0:a] atrim=start=479:duration=1131,asetpts=PTS-STARTPTS [a1]; [0:a] atrim=start=3180:duration=27,asetpts=PTS-STARTPTS [a3]; [a1] [16:a] [a3] concat=n=3:v=0:a=1 [ac]; [ac] dynaudnorm=r=0.25:f=10:b=y [ad]; [1:v] [2:v] [3:v] [4:v] [5:v] [6:v] [7:v] [8:v] [9:v] [10:v] [11:v] [12:v] [13:v] [14:v] [15:v] concat=n=15 [vc]' -codec:a pcm_s16le -ac 1 -codec:v h264 -pix_fmt yuv420p -map '[vc]' -map '[ad]' test03j.mov 
+
+
+
+Use cases
+Audio with or without segments
+Video with or without segments (unlikely)
+Frame with or without segments (unlikely)
+
+Audio + [video or frame], same input file, with or without segments
+Audio + [video or frame], separate input files, with or without segments
+
+Input type (video, audio, frame)
+Input file (same file, different files)
+Input stream (single or multiple)
