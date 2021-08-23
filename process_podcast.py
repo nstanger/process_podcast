@@ -559,5 +559,5 @@ def main():
 
 
 if (__name__ == "__main__"):
-    assert sys.version_info >= (3, 7)
+    assert sys.version_info >= (3, 5)
     main()
