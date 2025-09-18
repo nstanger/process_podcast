@@ -25,6 +25,9 @@ class ShellCommand(object):
     @staticmethod
     def shellquote(s):
         """Quote a string so it can be safely pasted into the shell."""
+        # Files will arrive as pathlib.Path, so force everything to a
+        # string before trying to do any manipulations.
+        s = str(s)
         # Note: pipes/shlex.quote() only wraps '' around things,
         # it doesn't do things like \( \), which we also need.
         # We double-quote everything because that makes it easier
@@ -96,7 +99,9 @@ class ShellCommand(object):
     
     def argument_list(self):
         """Return a combined list of all arguments."""
-        return self._base_options + self.input_options + self.output_options
+        args = self._base_options + self.input_options + self.output_options
+        # Ensure everything is a string, especially pathlib.Path.
+        return [str(a) for a in args]
     
     def command_string(self, quote=False):
         """Return the entire command as a string."""
@@ -262,9 +267,11 @@ class FFmpegConcatCommand(FFmpegCommand):
     
     def argument_list(self):
         """Return a combined list of all arguments."""
-        return (self._base_options + self.input_options +
+        args = (self._base_options + self.input_options +
                 ["-filter_complex", self.build_complex_filter()] +
                 self.output_options)
+        # Ensure everything is a string, especially pathlib.Path.
+        return [str(a) for a in args]
     
     def process_pattern(self, pat):
         """Respond to a pexpect pattern. Return True on EOF."""
